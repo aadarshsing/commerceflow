@@ -1,4 +1,4 @@
-package com.inventory;
+package com.cart;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -6,12 +6,12 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
 @SpringBootApplication
-@EnableJpaAuditing(auditorAwareRef = "auditAwareImpl")
+@EnableJpaAuditing
 @EnableFeignClients
-public class InventoryApplication {
+public class CartApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(InventoryApplication.class, args);
+		SpringApplication.run(CartApplication.class, args);
 	}
 
 }

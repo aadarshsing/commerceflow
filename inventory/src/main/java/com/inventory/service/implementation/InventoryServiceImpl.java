@@ -33,10 +33,6 @@ public class InventoryServiceImpl implements IInventoryService {
                     "you can add stock");
         }
         Inventory inventory1 = InventoryMapper.createDtoToInventoryMapper(new Inventory(),inventoryDto);
-//        Product product = productRepository.findById(inventoryDto.productId()).orElseThrow(
-//                ()->  new ResourceNotFoundException("Product","productId",inventoryDto.productId().toString())
-//        );
-//        inventory1.setProduct(product);
         inventoryRepository.save(inventory1);
     }
 
