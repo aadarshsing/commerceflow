@@ -51,7 +51,7 @@ public class CartItemServiceImpl implements ICartItemService {
         }
 
         InventoryResponseDto inventoryResponseDto = inventoryFeignClient.getInventory(createCartItemDto.productId()).getBody();
-        int availableQuantity = inventoryResponseDto.availableQuantity();
+        int availableQuantity = inventoryResponseDto != null ? inventoryResponseDto.availableQuantity() : 0;
         if(createCartItemDto.quantity() > availableQuantity){
             throw new ResourceNotAvailableException("Inventory","availableQuantity",String.valueOf(availableQuantity));
         }

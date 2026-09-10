@@ -77,8 +77,6 @@ public class ProductServiceImpl implements IproductService {
             );
         }
 
-        productRepository.save(product);
-
     }
 
     @Override
