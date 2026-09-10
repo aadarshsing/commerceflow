@@ -5,6 +5,8 @@ import com.cart.dto.CartResponseDto;
 import com.cart.dto.CreateCartItemDto;
 import com.cart.dto.UpdateCartItemDto;
 
+import java.util.List;
+
 public interface ICartItemService {
 
     /**
@@ -14,6 +16,12 @@ public interface ICartItemService {
      */
     void createCartItem(Long cartId, CreateCartItemDto createCartItemDto);
 
+    /**
+     *
+     * @param cartId
+     * @param createCartItemDtoList
+     */
+    void createBulkCartItem(Long cartId, List<CreateCartItemDto> createCartItemDtoList);
     /**
      *
      * @param cartId

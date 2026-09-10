@@ -15,6 +15,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping(path = "/api")
 @Validated
@@ -39,7 +41,20 @@ public class CartItemController {
                 HttpStatus.CREATED
         );
     }
-
+    @PostMapping("/carts/{cartId}/bulk/items")
+    ResponseEntity<ResponseDto> createCartItemsInBulk(
+            @NotNull(message = "cartId cannot be null")
+            @PathVariable Long cartId, @Valid @RequestBody List<CreateCartItemDto> createCartItemDto
+    ){
+        cartItemService.createBulkCartItem(cartId,createCartItemDto);
+        return new ResponseEntity<>(
+                new ResponseDto(
+                        HttpStatus.CREATED.toString(),
+                        "cartItems are created Successfully"
+                ),
+                HttpStatus.CREATED
+        );
+    }
     @GetMapping("/carts/{cartId}")
     ResponseEntity<CartResponseDto> getCart(
             @NotNull(message = "cartId cannot be null")

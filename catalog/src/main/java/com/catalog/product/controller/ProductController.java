@@ -19,6 +19,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @RestController
 @RequestMapping(path = "/api")
@@ -39,6 +40,16 @@ public class ProductController {
                 )
         );
 
+    }
+    @PostMapping("/product/bulk")
+    ResponseEntity<ResponseDto> createBulkProduct(@Valid @RequestBody List<CreateProductRequestDto> createProductRequestDtoList){
+        iproductService.createProductInBulk(createProductRequestDtoList);
+        return ResponseEntity.ok(
+                new ResponseDto(
+                        HttpStatus.OK.toString(),
+                        "Products are created Successfully"
+                )
+        );
     }
 
     @PutMapping("/product/{id}")

@@ -7,6 +7,7 @@ import com.customer.service.IAddressService;
 import com.customer.service.IcustomerService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -50,6 +51,11 @@ public class CustomerController {
                 customerResponseDto,
                 HttpStatus.OK
         );
+    }
+    @GetMapping("/customer/{customerId}")
+    public ResponseEntity<Boolean> checkCustomerExist(@PathVariable @NotNull(message = "customerId cannot be null") Long customerId){
+        Boolean isPresent = customerService.checkCustomer(customerId);
+        return ResponseEntity.ok(isPresent);
     }
 
     @DeleteMapping("/customer")

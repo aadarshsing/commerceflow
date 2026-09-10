@@ -6,8 +6,10 @@ import com.inventory.dto.ProductResponseDto;
 import com.inventory.dto.UpdateInventoryDto;
 import com.inventory.enitity.Inventory;
 import com.inventory.enitity.enums.InventoryOperation;
+import com.inventory.enitity.enums.ProductStatus;
 import com.inventory.enitity.enums.Status;
 import com.inventory.exception.DuplicateResourceException;
+import com.inventory.exception.ResourceNotActiveException;
 import com.inventory.exception.ResourceNotAvailableException;
 import com.inventory.exception.ResourceNotFoundException;
 import com.inventory.mapper.InventoryMapper;
@@ -38,6 +40,9 @@ public class InventoryServiceImpl implements IInventoryService {
         ProductResponseDto productResponseDto = productFeignClient.getProductById(inventoryDto.productId()).getBody();
         if(productResponseDto == null){
             throw  new ResourceNotFoundException("Product","ProductId",inventoryDto.productId().toString());
+        }
+        if(productResponseDto.status().equals(ProductStatus.INACTIVE)){
+            throw new ResourceNotActiveException("Product","productId",inventoryDto.productId().toString());
         }
         Inventory inventory1 = InventoryMapper.createDtoToInventoryMapper(new Inventory(),inventoryDto);
         inventoryRepository.save(inventory1);

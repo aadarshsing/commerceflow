@@ -33,4 +33,11 @@ public interface IcustomerService {
      * @param email
      */
     boolean deleteCustomer(String email);
+
+    /**
+     *
+     * @param customerId
+     * @return - boolean whether customer exists or not
+     */
+    Boolean checkCustomer(Long customerId);
 }

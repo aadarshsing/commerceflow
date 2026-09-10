@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 @FeignClient(name = "inventory")
 public interface InventoryFeignClient {
 
-    @GetMapping("/inventories/{productId}")
+    @GetMapping("api/inventories/{productId}")
     ResponseEntity<InventoryResponseDto> getInventory(
             @NotNull(message = "productId cannot be null")
             @Positive(message = "productId must be greater than 0")

@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 public interface IproductService {
 
@@ -17,6 +18,11 @@ public interface IproductService {
      */
     void createProduct(CreateProductRequestDto productRequestDto);
 
+    /**
+     *
+     * @param createProductRequestDtoList
+     */
+    void createProductInBulk(List<CreateProductRequestDto> createProductRequestDtoList);
     /**
      *
      * @param productRequestDto

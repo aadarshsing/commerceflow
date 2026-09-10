@@ -9,6 +9,7 @@ import com.cart.exception.ResourceNotFoundException;
 import com.cart.mapper.CartMapper;
 import com.cart.repository.CartRepository;
 import com.cart.service.IcartService;
+import com.cart.service.client.CustomerFeignClient;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +21,7 @@ import java.util.Optional;
 public class CartServiceImpl implements IcartService {
 
     CartRepository cartRepository;
+    CustomerFeignClient customerFeignClient;
 
     @Override
     public void createCart(CreateCartDto createCartDto) {
@@ -28,6 +30,10 @@ public class CartServiceImpl implements IcartService {
 
         if(cart.isPresent() && cart.get().getCartStatus().equals(CartStatus.ACTIVE)){
             throw new DuplicateResourceException("Cart is already Created and Active for given customerId "+createCartDto.customerId());
+        }
+        Boolean isPresent  = customerFeignClient.checkCustomerExist(createCartDto.customerId()).getBody();
+        if(isPresent.equals(Boolean.FALSE)){
+            throw new ResourceNotFoundException("Customer","customerId",createCartDto.customerId().toString());
         }
         Cart cartToSave = CartMapper.cartDtoTOCart(createCartDto,new Cart());
         cartRepository.save(cartToSave);

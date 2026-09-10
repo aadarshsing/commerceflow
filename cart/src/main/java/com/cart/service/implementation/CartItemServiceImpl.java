@@ -72,6 +72,13 @@ public class CartItemServiceImpl implements ICartItemService {
     }
 
     @Override
+    public void createBulkCartItem(Long cartId, List<CreateCartItemDto> createCartItemDtoList) {
+        for(CreateCartItemDto createCartItemDto:createCartItemDtoList){
+            createCartItem(cartId,createCartItemDto);
+        }
+    }
+
+    @Override
     public CartResponseDto getCart(Long cartId) {
         Cart cart = cartRepository.findById(cartId).orElseThrow(
                 ()->new ResourceNotFoundException("Cart","cartId",cartId.toString())
