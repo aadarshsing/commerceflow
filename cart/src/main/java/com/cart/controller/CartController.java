@@ -1,10 +1,10 @@
 package com.cart.controller;
 
 
-import com.commerceflow.cart.dto.CartResponseDto;
-import com.commerceflow.cart.dto.CreateCartDto;
-import com.commerceflow.cart.dto.ResponseDto;
-import com.commerceflow.cart.service.IcartService;
+import com.cart.dto.CartResponseDto;
+import com.cart.dto.CreateCartDto;
+import com.cart.dto.ResponseDto;
+import com.cart.service.IcartService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;

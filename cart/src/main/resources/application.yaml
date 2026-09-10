@@ -1,3 +1,25 @@
+server:
+  port: 8030
 spring:
   application:
     name: cart
+  datasource:
+    url: jdbc:mysql://localhost:3303/cartDb
+    username: root
+    password: cart
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  sql:
+    init:
+      mode: always
+eureka:
+  instance:
+    preferIpAddress: true
+  client:
+    fetchRegistry: true
+    registerWithEureka: true
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/

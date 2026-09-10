@@ -2,6 +2,7 @@ package com.inventory.service.implementation;
 
 import com.inventory.dto.CreateInventoryDto;
 import com.inventory.dto.InventoryResponseDto;
+import com.inventory.dto.ProductResponseDto;
 import com.inventory.dto.UpdateInventoryDto;
 import com.inventory.enitity.Inventory;
 import com.inventory.enitity.enums.InventoryOperation;
@@ -12,6 +13,7 @@ import com.inventory.exception.ResourceNotFoundException;
 import com.inventory.mapper.InventoryMapper;
 import com.inventory.repository.InventoryRepository;
 import com.inventory.service.IInventoryService;
+import com.inventory.service.client.ProductFeignClient;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +26,7 @@ import java.util.Optional;
 public class InventoryServiceImpl implements IInventoryService {
 
     InventoryRepository inventoryRepository;
+    ProductFeignClient productFeignClient;
 
     @Override
     public void createInventory(CreateInventoryDto inventoryDto) {
@@ -31,6 +34,10 @@ public class InventoryServiceImpl implements IInventoryService {
         if(inventory.isPresent()){
             throw new DuplicateResourceException("Inventory already exist for given product /n" +
                     "you can add stock");
+        }
+        ProductResponseDto productResponseDto = productFeignClient.getProductById(inventoryDto.productId()).getBody();
+        if(productResponseDto == null){
+            throw  new ResourceNotFoundException("Product","ProductId",inventoryDto.productId().toString());
         }
         Inventory inventory1 = InventoryMapper.createDtoToInventoryMapper(new Inventory(),inventoryDto);
         inventoryRepository.save(inventory1);
