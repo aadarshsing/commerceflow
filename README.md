@@ -40,7 +40,7 @@ The application is divided into multiple services:
 * **Product Service** – Manages products, categories, and sellers.
 * **Inventory Service** – Manages product stock, available quantity, reserved quantity, and low-stock thresholds.
 * **Order Service** – Handles order creation, order lifecycle, and order-related operations.
-* **Payment Service** – Handles payments, payment status, transaction references, and refunds/cancellations.
+* **Payment Service** – Handles payments, payment orderStatus, transaction references, and refunds/cancellations.
 
 ## 🛠️ Technologies
 
@@ -99,7 +99,7 @@ Payment Service  → paymentDb
 * Parent and child categories
 * Seller management
 * Product filtering and pagination
-* Product status management
+* Product orderStatus management
 
 ### Inventory Management
 
@@ -112,7 +112,7 @@ Payment Service  → paymentDb
 ### Order Management
 
 * Create orders
-* Manage order status
+* Manage order orderStatus
 * Validate product and inventory information
 * Communicate with inventory and payment services
 
@@ -120,7 +120,7 @@ Payment Service  → paymentDb
 
 * Payment creation
 * Transaction reference generation
-* Payment status management
+* Payment orderStatus management
 * Payment cancellation
 * Refund handling
 

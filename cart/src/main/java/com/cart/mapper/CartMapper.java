@@ -20,6 +20,7 @@ public class CartMapper {
         cartResponseDto.setId(cart.getId());
         cartResponseDto.setCustomerId(cart.getCustomerId());
         cartResponseDto.setItems(cart.getItems().stream().map(CartItemMapper::cartItemToDtoMapper).toList());
+        cartResponseDto.setCartStatus(cart.getCartStatus());
         return  cartResponseDto;
     }
 

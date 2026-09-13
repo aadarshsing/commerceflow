@@ -1,6 +1,6 @@
 package com.inventory.enitity;
 
-import com.inventory.enitity.enums.Status;
+import com.inventory.enitity.enums.InventoryStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -26,7 +26,7 @@ public class Inventory extends BaseEntity {
     @Column(nullable = false)
     private int lowStockThreshold;
     @Enumerated(EnumType.STRING)
-    private Status status;
+    private InventoryStatus inventoryStatus;
 
 
 }

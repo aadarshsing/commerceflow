@@ -7,7 +7,7 @@ import com.inventory.dto.UpdateInventoryDto;
 import com.inventory.enitity.Inventory;
 import com.inventory.enitity.enums.InventoryOperation;
 import com.inventory.enitity.enums.ProductStatus;
-import com.inventory.enitity.enums.Status;
+import com.inventory.enitity.enums.InventoryStatus;
 import com.inventory.exception.DuplicateResourceException;
 import com.inventory.exception.ResourceNotActiveException;
 import com.inventory.exception.ResourceNotAvailableException;
@@ -68,10 +68,10 @@ public class InventoryServiceImpl implements IInventoryService {
             availableQuantity = availableQuantity + updateInventoryDto.quantity();
             inventory.setAvailableQuantity(availableQuantity);
             if(availableQuantity > inventory.getLowStockThreshold()){
-                inventory.setStatus(Status.ACTIVE);
+                inventory.setInventoryStatus(InventoryStatus.ACTIVE);
             }
             else if(availableQuantity <= inventory.getLowStockThreshold() && availableQuantity > 0){
-                inventory.setStatus(Status.LOW_STOCK);
+                inventory.setInventoryStatus(InventoryStatus.LOW_STOCK);
             }
         }
         else if(updateInventoryDto.operation().equals(InventoryOperation.REMOVE)){
@@ -81,10 +81,10 @@ public class InventoryServiceImpl implements IInventoryService {
             availableQuantity -= updateInventoryDto.quantity();
             inventory.setAvailableQuantity(availableQuantity);
             if(availableQuantity <= inventory.getLowStockThreshold() && availableQuantity > 0){
-                inventory.setStatus(Status.LOW_STOCK);
+                inventory.setInventoryStatus(InventoryStatus.LOW_STOCK);
             }
             else if(availableQuantity == 0){
-                inventory.setStatus(Status.SOLDOUT);
+                inventory.setInventoryStatus(InventoryStatus.SOLDOUT);
             }
         }
         else if(updateInventoryDto.operation().equals(InventoryOperation.RESERVE)){
@@ -95,10 +95,10 @@ public class InventoryServiceImpl implements IInventoryService {
             inventory.setAvailableQuantity(availableQuantity);
             inventory.setReservedQuantity(updateInventoryDto.quantity() + inventory.getReservedQuantity());
             if(availableQuantity <= inventory.getLowStockThreshold() && availableQuantity > 0){
-                inventory.setStatus(Status.LOW_STOCK);
+                inventory.setInventoryStatus(InventoryStatus.LOW_STOCK);
             }
             else if(availableQuantity == 0){
-                inventory.setStatus(Status.SOLDOUT);
+                inventory.setInventoryStatus(InventoryStatus.SOLDOUT);
             }
         }
         else if(updateInventoryDto.operation().equals(InventoryOperation.RELEASE)){
@@ -110,10 +110,10 @@ public class InventoryServiceImpl implements IInventoryService {
             inventory.setAvailableQuantity(availableQuantity);
             inventory.setReservedQuantity(reserveQuantity);
             if(availableQuantity > inventory.getLowStockThreshold()){
-                inventory.setStatus(Status.ACTIVE);
+                inventory.setInventoryStatus(InventoryStatus.ACTIVE);
             }
             else if(availableQuantity <= inventory.getLowStockThreshold() && availableQuantity > 0){
-                inventory.setStatus(Status.LOW_STOCK);
+                inventory.setInventoryStatus(InventoryStatus.LOW_STOCK);
             }
         }
 

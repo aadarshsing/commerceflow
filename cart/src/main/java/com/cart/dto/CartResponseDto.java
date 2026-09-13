@@ -1,5 +1,6 @@
 package com.cart.dto;
 
+import com.cart.entity.enums.CartStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,4 +17,5 @@ public class CartResponseDto {
     private Long id;
     private Long customerId;
     private List<CartItemResponseDto> items;
+    private CartStatus cartStatus;
 }

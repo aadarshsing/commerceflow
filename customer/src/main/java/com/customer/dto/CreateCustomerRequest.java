@@ -1,7 +1,7 @@
 package com.customer.dto;
 
 
-import com.customer.entity.enums.Status;
+import com.customer.entity.enums.CustomerStatus;
 import jakarta.validation.constraints.*;
 
 public record CreateCustomerRequest(
@@ -22,6 +22,6 @@ public record CreateCustomerRequest(
         @NotEmpty(message = "Mobile number cannot be null or empty")
         @Pattern(regexp = "(^$|[0-9]{10})",message = "Mobile number must be 10 digits")
         String phoneNumber,
-        Status status
+        CustomerStatus customerStatus
 ) {
 }

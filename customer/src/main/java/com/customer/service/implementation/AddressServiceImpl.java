@@ -1,5 +1,6 @@
 package com.customer.service.implementation;
 
+import com.customer.dto.AddressResponseDto;
 import com.customer.dto.CreateAddressRequestDto;
 import com.customer.entity.Address;
 import com.customer.entity.Customer;
@@ -28,4 +29,13 @@ public class AddressServiceImpl implements IAddressService {
         address.setCustomer(customer);
         addressRepository.save(address);
     }
+
+    @Override
+    public AddressResponseDto getAddress(Long id) {
+        Address address = addressRepository.findById(id).orElseThrow(
+                ()-> new ResourceNotFoundException("Address","AddressId",id.toString())
+        );
+        return AddressMapper.addressEntityToDtoMapper(address);
+    }
+
 }

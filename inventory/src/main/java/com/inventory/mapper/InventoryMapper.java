@@ -4,7 +4,7 @@ package com.inventory.mapper;
 import com.inventory.dto.CreateInventoryDto;
 import com.inventory.dto.InventoryResponseDto;
 import com.inventory.enitity.Inventory;
-import com.inventory.enitity.enums.Status;
+import com.inventory.enitity.enums.InventoryStatus;
 
 public class InventoryMapper {
 
@@ -12,13 +12,13 @@ public class InventoryMapper {
 
         inventory.setAvailableQuantity(createInventoryDto.availableQuantity());
         if(createInventoryDto.availableQuantity() > createInventoryDto.lowStockThreshold()){
-            inventory.setStatus(Status.ACTIVE);
+            inventory.setInventoryStatus(InventoryStatus.ACTIVE);
         }
         else if(inventory.getAvailableQuantity() <= createInventoryDto.lowStockThreshold() && inventory.getAvailableQuantity() > 0){
-            inventory.setStatus(Status.LOW_STOCK);
+            inventory.setInventoryStatus(InventoryStatus.LOW_STOCK);
         }
         else if(inventory.getAvailableQuantity() == 0){
-            inventory.setStatus(Status.SOLDOUT);
+            inventory.setInventoryStatus(InventoryStatus.SOLDOUT);
         }
         inventory.setLowStockThreshold(createInventoryDto.lowStockThreshold());
         inventory.setProductId(createInventoryDto.productId());
@@ -87,7 +87,7 @@ public class InventoryMapper {
                 inventory.getAvailableQuantity(),
                 inventory.getReservedQuantity(),
                 inventory.getLowStockThreshold(),
-                inventory.getStatus()
+                inventory.getInventoryStatus()
         );
     }
 }

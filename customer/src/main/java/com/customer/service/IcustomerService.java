@@ -22,6 +22,12 @@ public interface IcustomerService {
 
     /**
      *
+     * @param id
+     * @return CustomerResponseDto based on id
+     */
+     CustomerResponseDto fetchCustomerById(Long id);
+    /**
+     *
      * @param customerRequest
      * @param email
      * @return customer responseDto based on email and updated CustomerRequest object

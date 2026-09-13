@@ -1,7 +1,7 @@
 package com.customer.entity;
 
 
-import com.customer.entity.enums.Status;
+import com.customer.entity.enums.CustomerStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -28,7 +28,7 @@ public class Customer extends BaseEntity {
     private String phoneNumber;
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    private Status status;
+    private CustomerStatus customerStatus;
 
     @OneToMany(
             mappedBy = "customer",

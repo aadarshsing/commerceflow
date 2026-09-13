@@ -56,6 +56,15 @@ public class CustomerServiceImpl implements IcustomerService {
     }
 
     @Override
+    public CustomerResponseDto fetchCustomerById(Long id) {
+        Optional<Customer> customer = customerRepository.findById(id);
+        if(customer.isEmpty()){
+            throw new ResourceNotFoundException("Customer","CustomerId",id.toString());
+        }
+        return CustomerMapper.customerToDtoMapper(customer.get());
+    }
+
+    @Override
     public CustomerResponseDto updateCustomer(UpdateCustomerDto customerRequest, String email) {
         Optional<Customer> customer = customerRepository.findByEmail(email);
         if(customer.isEmpty()){

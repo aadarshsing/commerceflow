@@ -5,14 +5,14 @@ import com.customer.dto.CreateCustomerRequest;
 import com.customer.dto.CustomerResponseDto;
 import com.customer.dto.UpdateCustomerDto;
 import com.customer.entity.Customer;
-import com.customer.entity.enums.Status;
+import com.customer.entity.enums.CustomerStatus;
 
 public class CustomerMapper {
 
 
     public static CustomerResponseDto customerToDtoMapper(Customer customer){
         CustomerResponseDto createCustomerResponseDto = new CustomerResponseDto(
-                customer.getName(), customer.getEmail(), customer.getPhoneNumber(), customer.getStatus(),
+                customer.getName(), customer.getEmail(), customer.getPhoneNumber(), customer.getCustomerStatus(),
                 customer.getAddresses().stream().map(AddressMapper::addressEntityToDtoMapper).toList());
         return createCustomerResponseDto;
     }
@@ -21,7 +21,7 @@ public class CustomerMapper {
         customer.setName(createCustomerRequest.name());
         customer.setEmail(createCustomerRequest.email());
         customer.setPassword(createCustomerRequest.password());
-        customer.setStatus(Status.INITIATED);
+        customer.setCustomerStatus(CustomerStatus.INITIATED);
         customer.setPhoneNumber(createCustomerRequest.phoneNumber());
 
         return  customer;

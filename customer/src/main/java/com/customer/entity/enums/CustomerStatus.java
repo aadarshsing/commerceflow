@@ -1,6 +1,6 @@
 package com.customer.entity.enums;
 
-public enum Status {
+public enum CustomerStatus {
     INITIATED,
     ACTIVE,
     INACTIVE
