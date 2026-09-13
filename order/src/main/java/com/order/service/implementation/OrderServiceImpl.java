@@ -67,8 +67,10 @@ public class OrderServiceImpl implements IOrderService {
     public void createOrderFromCart(CartCheckOutRequest cartCheckOutRequest) {
 
         CartResponseDto cart = cartFeignClient.getCart(cartCheckOutRequest.customerId()).getBody();
-        CustomerResponseDto customer = customerFeignClient.fetchCustomerById(cartCheckOutRequest.customerId()).getBody();
-
+        Boolean isExist = customerFeignClient.checkCustomerExist(cartCheckOutRequest.customerId()).getBody();
+        if(!isExist){
+            throw  new ResourceNotFoundException("Customer","CustomerId",cartCheckOutRequest.customerId().toString());
+        }
         if(cart == null){
             throw new ResourceNotFoundException("Cart","cartId",cartCheckOutRequest.cartId().toString());
         }
@@ -159,8 +161,10 @@ public class OrderServiceImpl implements IOrderService {
     @Override
     public void createOrderFromBuyNow(BuyNowRequest buyNowRequest) {
 
-        CustomerResponseDto customer = customerFeignClient.fetchCustomerById(buyNowRequest.customerId()).getBody();
-
+        Boolean isExist = customerFeignClient.checkCustomerExist(buyNowRequest.customerId()).getBody();
+        if(!isExist){
+            throw  new ResourceNotFoundException("Customer","CustomerId",buyNowRequest.customerId().toString());
+        }
         Order order = new Order();
         AddressResponseDto address = customerFeignClient.getAddress(buyNowRequest.shippingAddressId()).getBody();
 

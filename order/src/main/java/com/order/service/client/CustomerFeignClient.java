@@ -1,7 +1,6 @@
 package com.order.service.client;
 
 import com.order.dto.AddressResponseDto;
-import com.order.dto.CustomerResponseDto;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
@@ -14,7 +13,6 @@ public interface CustomerFeignClient {
     @GetMapping("/address/{addressId}")
     ResponseEntity<AddressResponseDto> getAddress(@NotNull(message = "AddressId cannot be null" )
                                                   @PathVariable Long addressId);
-    @GetMapping("api/customer/{customerId}")
-    public ResponseEntity<CustomerResponseDto> fetchCustomerById(@NotNull(message = "Id cannot be null")
-                                                                 @PathVariable Long customerId);
+    @GetMapping("/customer/{customerId}")
+    public ResponseEntity<Boolean> checkCustomerExist(@PathVariable @NotNull(message = "customerId cannot be null") Long customerId);
 }

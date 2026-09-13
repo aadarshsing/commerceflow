@@ -43,12 +43,6 @@ public class CustomerController {
         CustomerResponseDto customerResponseDto = customerService.fetchCustomer(email);
         return ResponseEntity.ok(customerResponseDto);
     }
-    @GetMapping("/customer/{customerId}")
-    public ResponseEntity<CustomerResponseDto> fetchCustomerById(@NotNull(message = "Id cannot be null")
-                                                                 @PathVariable Long customerId){
-        CustomerResponseDto customerResponseDto = customerService.fetchCustomerById(customerId);
-        return ResponseEntity.ok(customerResponseDto);
-    }
     @PutMapping("/customer")
     public  ResponseEntity<CustomerResponseDto> updateCustomer(@RequestBody @Valid UpdateCustomerDto updateCustomerDto,
                                                                @Email(message = "Invalid email format") @RequestParam  String email){
