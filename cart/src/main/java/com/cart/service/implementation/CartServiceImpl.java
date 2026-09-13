@@ -2,6 +2,7 @@ package com.cart.service.implementation;
 
 import com.cart.dto.CartResponseDto;
 import com.cart.dto.CreateCartDto;
+import com.cart.dto.ResponseDto;
 import com.cart.entity.Cart;
 import com.cart.entity.enums.CartStatus;
 import com.cart.exception.DuplicateResourceException;
@@ -11,6 +12,7 @@ import com.cart.repository.CartRepository;
 import com.cart.service.IcartService;
 import com.cart.service.client.CustomerFeignClient;
 import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -46,6 +48,15 @@ public class CartServiceImpl implements IcartService {
         );
         return CartMapper.CartToDtoMapper(cart);
 
+    }
+
+    @Override
+    public ResponseDto deleteCart(Long cartId) {
+        cartRepository.deleteById(cartId);
+        return new ResponseDto(
+                HttpStatus.OK.toString(),
+                "cart deleted Successfully"
+        );
     }
 
 

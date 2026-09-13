@@ -3,23 +3,18 @@ import com.order.dto.*;
 import com.order.entity.Order;
 import com.order.entity.OrderAddress;
 import com.order.entity.OrderItem;
-import com.order.entity.enums.CartStatus;
-import com.order.entity.enums.InventoryOperation;
-import com.order.entity.enums.OrderStatus;
-import com.order.entity.enums.ProductStatus;
+import com.order.entity.enums.*;
 import com.order.exception.ResourceNotActiveException;
 import com.order.exception.ResourceNotFoundException;
 import com.order.mapper.OrderMapper;
 import com.order.repository.OrderRepository;
 import com.order.service.IOrderService;
-import com.order.service.client.CartFeignClient;
-import com.order.service.client.CustomerFeignClient;
-import com.order.service.client.InventoryFeignClient;
-import com.order.service.client.ProductFeignClient;
+import com.order.service.client.*;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,7 +32,7 @@ public class OrderServiceImpl implements IOrderService {
     CustomerFeignClient customerFeignClient;
     OrderRepository orderRepository;
     ProductFeignClient productFeignClient;
-//    IPaymentService paymentService;
+    PaymentFeignClient paymentFeignClient;
 
     @Override
     public OrderResponseDto getOrderById(Long id) {
@@ -55,7 +50,7 @@ public class OrderServiceImpl implements IOrderService {
                 size,
                 Sort.by(Sort.Direction.DESC,"createdAt")
         );
-        List<Order> orderList = orderRepository.findAllOrderByCustomer(customerId,pageable).orElseThrow(
+        List<Order> orderList = orderRepository.findAllOrderByCustomerId(customerId,pageable).orElseThrow(
                 ()-> new ResourceNotFoundException("Orders","customerId",customerId.toString())
         );
         return orderList.stream().map(OrderMapper::orderToOrderResponseDtoMapper).toList();
@@ -116,42 +111,50 @@ public class OrderServiceImpl implements IOrderService {
         order.setOrderItems(orderItems);
         order.setTotalAmount(totalAmount);
         orderRepository.save(order);
-        // it will call payment then once payment is confirmed that order transition move to confirmed if payment failed
-        // then we will again release inventory product and make transition to order not created
-//        ResponseDto paymentResponseDto = paymentService.createPayment(
-//                new CreatePaymentDto(
-//                        order.getId(),
-//                        customer.getId(),
-//                        PaymentMethod.UPI
-//                )
-//        );
-//        if (paymentResponseDto.statusMsg().equals(PaymentStatus.FAILED)) {
-//            for (int i = 1; i < 5; i++) {
-//                paymentResponseDto = paymentService.createPayment(new CreatePaymentDto(order.getId(), customer.getId(), PaymentMethod.UPI));
-//                if(paymentResponseDto.statusMsg().equals(PaymentStatus.PENDING)
-//                        || paymentResponseDto.statusMsg().equals(PaymentStatus.SUCCESS)
-//                ) break;
-//
-//            }
-//        }
-//        if(paymentResponseDto.statusMsg().equals(PaymentStatus.FAILED)){
-//            for(CartItemResponseDto cartItem:cartItemList){
-//                ProductResponseDto product = cartItem.getProductResponseDto();
-//
-//                inventoryFeignClient.updateStock(
-//                        product.id(),
-//                        new UpdateInventoryDto(
-//                                cartItem.getQuantity(),
-//                                InventoryOperation.RELEASE
-//                        )
-//                );
-//            }
-//        }
-//        if(paymentResponseDto.statusMsg().equals(PaymentStatus.SUCCESS)){
-//            order.setStatus(Status.CONFIRMED);
+//         it will call payment then once payment is confirmed that order transition move to confirmed if payment failed
+//         then we will again release inventory product and make transition to order not created
+        ResponseDto paymentResponseDto = paymentFeignClient.createPayment(
+                new CreatePaymentDto(
+                        order.getId(),
+                        cartCheckOutRequest.customerId(),
+                        PaymentMethod.UPI
+                )
+        ).getBody();
+        if (paymentResponseDto.statusMsg().equals(PaymentStatus.FAILED)) {
+            for (int i = 1; i < 5; i++) {
+                paymentResponseDto = paymentFeignClient.createPayment(
+                        new CreatePaymentDto(
+                                order.getId(),
+                                cartCheckOutRequest.customerId(),
+                                PaymentMethod.UPI)).getBody();
+                if(paymentResponseDto.statusMsg().equals(PaymentStatus.PENDING)
+                        || paymentResponseDto.statusMsg().equals(PaymentStatus.SUCCESS)
+                ) break;
+
+            }
+        }
+        if(paymentResponseDto.statusMsg().equals(PaymentStatus.FAILED)){
+            for(CartItemResponseDto cartItem:cartItemList){
+                ProductResponseDto product = cartItem.getProductResponseDto();
+
+                inventoryFeignClient.updateStock(
+                        product.id(),
+                        new UpdateInventoryDto(
+                                cartItem.getQuantity(),
+                                InventoryOperation.RELEASE
+                        )
+                );
+            }
+        }
+        if(paymentResponseDto.statusMsg().equals(PaymentStatus.SUCCESS)){
+            order.setOrderStatus(OrderStatus.CONFIRMED);
 //            cart.get().setItems(new ArrayList<>());
-//        }
-        // we will remove items after begin dispatch or delivered
+            ResponseDto responseDto = cartFeignClient.deleteCart(cart.getId()).getBody();
+            if(!responseDto.statusCode().equals(HttpStatus.OK)){
+                //will use retries pattern after while implementing fault torlence
+            }
+        }
+//         we will remove items after begin dispatch or delivered
 
 
 
@@ -192,34 +195,34 @@ public class OrderServiceImpl implements IOrderService {
         // it will call payment then once payment is confirmed that order transition move to confirmed if payment failed
         // then we will again release inventory product and make transition to order not created
 
-//        ResponseDto paymentResponseDto = paymentService.createPayment(
-//                new CreatePaymentDto(
-//                        order.getId(),
-//                        customer.getId(),
-//                        PaymentMethod.UPI
-//                )
-//        );
-//        if (paymentResponseDto.statusMsg().equals(PaymentStatus.FAILED)) {
-//            for (int i = 1; i < 6; i++) {
-//                paymentResponseDto = paymentService.createPayment(new CreatePaymentDto(order.getId(), customer.getId(), PaymentMethod.UPI));
-//                if(paymentResponseDto.statusMsg().equals(PaymentStatus.PENDING)
-//                        || paymentResponseDto.statusMsg().equals(PaymentStatus.SUCCESS)
-//                ) break;
-//
-//            }
-//        }
-//        if(paymentResponseDto.statusMsg().equals(PaymentStatus.FAILED)){
-//            inventoryService.updateInventory(
-//                    product.getId(),
-//                    new UpdateInventoryDto(
-//                            buyNowRequest.quantity(),
-//                            InventoryOperation.RELEASE
-//                    )
-//            );
-//        }
-//        if(paymentResponseDto.statusMsg().equals(PaymentStatus.SUCCESS)){
-//            order.setStatus(Status.CONFIRMED);
-//        }
+        ResponseDto paymentResponseDto = paymentFeignClient.createPayment(
+                new CreatePaymentDto(
+                        order.getId(),
+                        buyNowRequest.customerId(),
+                        PaymentMethod.UPI
+                )
+        ).getBody();
+        if (paymentResponseDto.statusMsg().equals(PaymentStatus.FAILED)) {
+            for (int i = 1; i < 6; i++) {
+                paymentResponseDto = paymentFeignClient.createPayment(new CreatePaymentDto(order.getId(), buyNowRequest.customerId(), PaymentMethod.UPI)).getBody();
+                if(paymentResponseDto.statusMsg().equals(PaymentStatus.PENDING)
+                        || paymentResponseDto.statusMsg().equals(PaymentStatus.SUCCESS)
+                ) break;
+
+            }
+        }
+        if(paymentResponseDto.statusMsg().equals(PaymentStatus.FAILED)){
+            inventoryFeignClient.updateStock(
+                    product.id(),
+                    new UpdateInventoryDto(
+                            buyNowRequest.quantity(),
+                            InventoryOperation.RELEASE
+                    )
+            );
+        }
+        if(paymentResponseDto.statusMsg().equals(PaymentStatus.SUCCESS)){
+            order.setOrderStatus(OrderStatus.CONFIRMED);
+        }
         // we will remove items after begin dispatch or delivered
 
     }

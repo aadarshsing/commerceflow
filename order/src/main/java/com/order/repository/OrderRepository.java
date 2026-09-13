@@ -16,9 +16,9 @@ public interface OrderRepository extends JpaRepository<Order,Long> {
 
     @Query("""
             SELECT O FROM Order O
-            WHERE O.customer.id = ?1
+            WHERE O.customerId = ?1
             """)
-    Optional<List<Order>> findAllOrderByCustomer(long customerId, Pageable pageable);
+    Optional<List<Order>> findAllOrderByCustomerId(long customerId, Pageable pageable);
 
 
 }
