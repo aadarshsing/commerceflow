@@ -1,0 +1,27 @@
+server:
+  port: 8060
+
+spring:
+  application:
+    name: payment
+  datasource:
+    url: jdbc:mysql://localhost:3305/paymentDb
+    username: root
+    password: payment
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  sql:
+    init:
+      mode: always
+eureka:
+  instance:
+    preferIpAddress: true
+  client:
+    fetchRegistry: true
+    registerWithEureka: true
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
+

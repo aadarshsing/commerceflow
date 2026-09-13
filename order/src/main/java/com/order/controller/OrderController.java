@@ -10,6 +10,7 @@ import com.order.service.IOrderService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -54,13 +55,13 @@ public class OrderController {
     }
 
     @GetMapping("/customers/{customerId}/orders")
-    public ResponseEntity<List<OrderResponseDto>> listOrdersByCustomer(
+    public ResponseEntity<Page<OrderResponseDto>> listOrdersByCustomer(
             @NotNull(message = "customerId cannot be null")
             @PathVariable Long customerId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size){
 
-        List<OrderResponseDto> list = orderService.getOrdersByCustomerId(
+        Page<OrderResponseDto> list = orderService.getOrdersByCustomerId(
                 customerId,
                 page,
                 size

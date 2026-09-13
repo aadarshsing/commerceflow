@@ -11,6 +11,7 @@ import com.order.repository.OrderRepository;
 import com.order.service.IOrderService;
 import com.order.service.client.*;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -43,17 +44,15 @@ public class OrderServiceImpl implements IOrderService {
     }
 
     @Override
-    public List<OrderResponseDto> getOrdersByCustomerId(Long customerId,int page,int size) {
+    public Page<OrderResponseDto> getOrdersByCustomerId(Long customerId, int page, int size) {
 
         Pageable pageable = PageRequest.of(
                 page,
                 size,
                 Sort.by(Sort.Direction.DESC,"createdAt")
         );
-        List<Order> orderList = orderRepository.findAllOrderByCustomerId(customerId,pageable).orElseThrow(
-                ()-> new ResourceNotFoundException("Orders","customerId",customerId.toString())
-        );
-        return orderList.stream().map(OrderMapper::orderToOrderResponseDtoMapper).toList();
+        Page<Order> orderList = orderRepository.findAllOrderByCustomerId(customerId,pageable);
+        return orderList.map(OrderMapper::orderToOrderResponseDtoMapper);
 
     }
 

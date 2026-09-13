@@ -5,6 +5,7 @@ import com.order.dto.BuyNowRequest;
 import com.order.dto.CartCheckOutRequest;
 import com.order.dto.OrderResponseDto;
 import com.order.entity.enums.OrderStatus;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
@@ -25,7 +26,7 @@ public interface IOrderService {
      * @param size
      * @return : it returns the list of orders of given customerId
      */
-    List<OrderResponseDto> getOrdersByCustomerId(Long customerId,int page,int size);
+    Page<OrderResponseDto> getOrdersByCustomerId(Long customerId, int page, int size);
     /**
      *
      * @param cartCheckOutRequest
