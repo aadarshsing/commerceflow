@@ -26,7 +26,7 @@ public class Cart extends BaseEntity {
     @Column(nullable = false)
     private CartStatus cartStatus;
 
-    @OneToMany(mappedBy = "cart" , fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "cart" , fetch = FetchType.LAZY, cascade = CascadeType.ALL,orphanRemoval = true)
     private List<CartItem> items = new ArrayList<>();
 
 

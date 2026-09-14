@@ -7,8 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-@FeignClient(name = "product")
-public interface ProductFeignClient {
+@FeignClient(name = "catalog")
+public interface CatalogFeignClient {
 
     @GetMapping("api/product")
     ResponseEntity<ProductResponseDto> getProductById(@NotNull(message = "id cannot be null")

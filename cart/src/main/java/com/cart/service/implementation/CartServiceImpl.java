@@ -15,6 +15,7 @@ import com.cart.service.client.CustomerFeignClient;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -66,13 +67,13 @@ public class CartServiceImpl implements IcartService {
         return cartResponseDto;
 
     }
-
+    @Transactional
     @Override
     public ResponseDto deleteCart(Long cartId) {
         Cart cart = cartRepository.findById(cartId).orElseThrow(
                 ()-> new ResourceNotFoundException("Cart","cartId",cartId.toString())
         );
-        cart.setItems(new ArrayList<>());
+        cart.getItems().clear();
         return new ResponseDto(
                 HttpStatus.OK.toString(),
                 "cart deleted Successfully"

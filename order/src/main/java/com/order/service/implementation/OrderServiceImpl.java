@@ -10,7 +10,6 @@ import com.order.mapper.OrderMapper;
 import com.order.repository.OrderRepository;
 import com.order.service.IOrderService;
 import com.order.service.client.*;
-import jakarta.persistence.EntityManager;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -18,7 +17,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -33,7 +31,7 @@ public class OrderServiceImpl implements IOrderService {
     InventoryFeignClient inventoryFeignClient;
     CustomerFeignClient customerFeignClient;
     OrderRepository orderRepository;
-    ProductFeignClient productFeignClient;
+    CatalogFeignClient catalogFeignClient;
     PaymentFeignClient paymentFeignClient;
 
     @Override
@@ -155,6 +153,7 @@ public class OrderServiceImpl implements IOrderService {
             }
         } catch (Exception e) {
             order.setOrderStatus(OrderStatus.CANCELLED);
+            orderRepository.save(order);
             for(CartItemResponseDto cartItem : cartItemList) {
                 ProductResponseDto product = cartItem.getProductResponseDto();
 
@@ -195,7 +194,7 @@ public class OrderServiceImpl implements IOrderService {
         Order order = new Order();
         AddressResponseDto address = customerFeignClient.getAddress(buyNowRequest.shippingAddressId()).getBody();
 
-        ProductResponseDto product = productFeignClient.getProductById(buyNowRequest.productId()).getBody();
+        ProductResponseDto product = catalogFeignClient.getProductById(buyNowRequest.productId()).getBody();
 
         if (product.status().equals(ProductStatus.INACTIVE)) {
             throw new ResourceNotActiveException("Product", "productId", buyNowRequest.productId().toString());
@@ -251,6 +250,7 @@ public class OrderServiceImpl implements IOrderService {
         }
         catch (Exception e){
             order.setOrderStatus(OrderStatus.CANCELLED);
+            orderRepository.save(order);
             inventoryFeignClient.updateStock(
                     product.id(),
                     new UpdateInventoryDto(
