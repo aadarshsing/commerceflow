@@ -112,7 +112,18 @@ public class CartItemServiceImpl implements ICartItemService {
             );
             CartItemMapper.updateCartItemDtoToCartMapper(cartItem, cartItemDto);
             cartItemRepository.save(cartItem);
-            return CartMapper.CartToDtoMapper(cart);
+            CartResponseDto cartResponseDto =  CartMapper.CartToDtoMapper(cart);
+            List<CartItemResponseDto> cartItemList = new ArrayList<>();
+
+            ProductResponseDto product = catalogFeignClient.getProductById(cartItem.getProductId()).getBody();
+            if(product == null){
+                throw new ResourceNotFoundException("Product","productId",cartItem.getProductId().toString());
+            }
+            CartItemResponseDto cartItemResponseDto = CartItemMapper.cartItemToDtoMapper(cartItem);
+            cartItemResponseDto.setProductResponseDto(product);
+            cartItemList.add(cartItemResponseDto);
+            cartResponseDto.setItems(cartItemList);
+            return cartResponseDto;
         }
         else {
             throw new ResourceNotActiveException("Cart","CartId",cartId.toString());

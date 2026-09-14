@@ -13,7 +13,7 @@ public class PaymentMapper {
 
     public static Payment createPaymentDtoToPaymentMapper(CreatePaymentDto paymentDto, Payment payment){
         payment.setPaymentMethod(paymentDto.paymentMethod());
-        payment.setStatus(PaymentStatus.PENDING);
+        payment.setStatus(PaymentStatus.SUCCESS);
         String transactionReference = "TXN-" + UUID.randomUUID();
         payment.setTransactionReference(transactionReference);
         return payment;

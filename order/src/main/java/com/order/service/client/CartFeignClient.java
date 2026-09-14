@@ -12,14 +12,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 @FeignClient(name = "cart")
 public interface CartFeignClient {
 
-    @GetMapping("api/carts/customer/{customerId}")
-    public ResponseEntity<CartResponseDto> getCart(
-            @NotNull(message = "customerId cannot be null")
-            @PathVariable Long customerId);
-
+    @GetMapping("api/carts/{cartId}")
+    ResponseEntity<CartResponseDto> getCart(
+            @NotNull(message = "cartId cannot be null")
+            @PathVariable Long cartId);
     @DeleteMapping("api/carts/{cartId}")
-    public ResponseEntity<ResponseDto> deleteCart(
+    public ResponseEntity<ResponseDto> deleteCartItems(
             @NotNull(message = "CartId cannot be null")
-            @PathVariable Long cartid
+            @PathVariable Long cartId
     );
 }

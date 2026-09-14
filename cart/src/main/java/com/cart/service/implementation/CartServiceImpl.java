@@ -1,20 +1,23 @@
 package com.cart.service.implementation;
 
-import com.cart.dto.CartResponseDto;
-import com.cart.dto.CreateCartDto;
-import com.cart.dto.ResponseDto;
+import com.cart.dto.*;
 import com.cart.entity.Cart;
+import com.cart.entity.CartItem;
 import com.cart.entity.enums.CartStatus;
 import com.cart.exception.DuplicateResourceException;
 import com.cart.exception.ResourceNotFoundException;
+import com.cart.mapper.CartItemMapper;
 import com.cart.mapper.CartMapper;
 import com.cart.repository.CartRepository;
 import com.cart.service.IcartService;
+import com.cart.service.client.CatalogFeignClient;
 import com.cart.service.client.CustomerFeignClient;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 
@@ -24,6 +27,7 @@ public class CartServiceImpl implements IcartService {
 
     CartRepository cartRepository;
     CustomerFeignClient customerFeignClient;
+    CatalogFeignClient catalogFeignClient;
 
     @Override
     public void createCart(CreateCartDto createCartDto) {
@@ -46,13 +50,29 @@ public class CartServiceImpl implements IcartService {
         Cart cart = cartRepository.findByCustomerId(customerId).orElseThrow(
                 ()-> new ResourceNotFoundException("Cart","customerId",customerId.toString())
         );
-        return CartMapper.CartToDtoMapper(cart);
+        CartResponseDto cartResponseDto = CartMapper.CartToDtoMapper(cart);
+        List<CartItemResponseDto> cartItemList = new ArrayList<>();
+        for(CartItem cartItem : cart.getItems()){
+            ProductResponseDto product = catalogFeignClient.getProductById(cartItem.getProductId()).getBody();
+            if(product == null){
+                throw new ResourceNotFoundException("Product","productId",cartItem.getProductId().toString());
+            }
+            CartItemResponseDto cartItemResponseDto = CartItemMapper.cartItemToDtoMapper(cartItem);
+            cartItemResponseDto.setProductResponseDto(product);
+            cartItemList.add(cartItemResponseDto);
+
+        }
+        cartResponseDto.setItems(cartItemList);
+        return cartResponseDto;
 
     }
 
     @Override
     public ResponseDto deleteCart(Long cartId) {
-        cartRepository.deleteById(cartId);
+        Cart cart = cartRepository.findById(cartId).orElseThrow(
+                ()-> new ResourceNotFoundException("Cart","cartId",cartId.toString())
+        );
+        cart.setItems(new ArrayList<>());
         return new ResponseDto(
                 HttpStatus.OK.toString(),
                 "cart deleted Successfully"

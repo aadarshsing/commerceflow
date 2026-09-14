@@ -10,9 +10,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 @FeignClient(name = "customer")
 public interface CustomerFeignClient {
 
-    @GetMapping("/address/{addressId}")
+    @GetMapping("api/address/{addressId}")
     ResponseEntity<AddressResponseDto> getAddress(@NotNull(message = "AddressId cannot be null" )
                                                   @PathVariable Long addressId);
-    @GetMapping("/customer/{customerId}")
+    @GetMapping("api/customer/{customerId}")
     public ResponseEntity<Boolean> checkCustomerExist(@PathVariable @NotNull(message = "customerId cannot be null") Long customerId);
 }

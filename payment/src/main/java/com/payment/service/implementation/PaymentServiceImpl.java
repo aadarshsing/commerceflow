@@ -49,7 +49,7 @@ public class PaymentServiceImpl implements IPaymentService {
         paymentRepository.save(payment);
         return  new ResponseDto(
                 HttpStatus.CREATED.toString(),
-                PaymentStatus.PENDING
+                PaymentStatus.SUCCESS
         );
 
     }
