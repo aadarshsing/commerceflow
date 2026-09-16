@@ -1,7 +1,7 @@
 package com.shipment.exception;
 
 
-import com.shipment.dto.ErrorResponseDto;
+import com.shipment.dto.shipment.ErrorResponseDto;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

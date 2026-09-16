@@ -1,8 +1,8 @@
 package com.shipment.mapper;
 
-import com.shipment.dto.CreateShipmentDto;
-import com.shipment.dto.OrderAddressResponseDto;
-import com.shipment.dto.ShipmentResponseDto;
+import com.shipment.dto.shipment.CreateShipmentDto;
+import com.shipment.dto.order.OrderAddressResponseDto;
+import com.shipment.dto.shipment.ShipmentResponseDto;
 import com.shipment.entity.Shipment;
 import com.shipment.entity.ShippingAddress;
 import com.shipment.entity.enums.ShipmentStatus;

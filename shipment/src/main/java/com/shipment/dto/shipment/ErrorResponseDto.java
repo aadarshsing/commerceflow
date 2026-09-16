@@ -1,4 +1,4 @@
-package com.shipment.dto;
+package com.shipment.dto.shipment;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;

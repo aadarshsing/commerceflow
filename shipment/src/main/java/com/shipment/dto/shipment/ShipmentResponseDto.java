@@ -1,8 +1,7 @@
-package com.shipment.dto;
+package com.shipment.dto.shipment;
 
 import com.shipment.entity.ShippingAddress;
 import com.shipment.entity.enums.ShipmentStatus;
-import jakarta.persistence.*;
 
 import java.time.Instant;
 

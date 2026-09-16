@@ -1,4 +1,4 @@
-package com.shipment.dto;
+package com.shipment.dto.order;
 
 
 public record OrderAddressResponseDto(

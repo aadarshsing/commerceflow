@@ -142,13 +142,13 @@ public class PaymentServiceImpl implements IPaymentService {
     }
 
     public boolean isValidTransition(PaymentStatus currentStatus,
-                                     PaymentStatus newStatus) {
+                                     PaymentStatus status) {
 
         if (currentStatus == PaymentStatus.PENDING) {
 
-            if (newStatus == PaymentStatus.SUCCESS ||
-                    newStatus == PaymentStatus.FAILED ||
-                    newStatus == PaymentStatus.CANCELLED) {
+            if (status == PaymentStatus.SUCCESS ||
+                    status == PaymentStatus.FAILED ||
+                    status == PaymentStatus.CANCELLED) {
                 return true;
             }
 
@@ -156,7 +156,7 @@ public class PaymentServiceImpl implements IPaymentService {
 
         } else if (currentStatus == PaymentStatus.SUCCESS) {
 
-            if (newStatus == PaymentStatus.REFUNDED) {
+            if (status == PaymentStatus.REFUNDED) {
                 return true;
             }
 
@@ -165,7 +165,7 @@ public class PaymentServiceImpl implements IPaymentService {
         } else if (currentStatus == PaymentStatus.FAILED) {
 
             // Failed payment can be retried
-            if (newStatus == PaymentStatus.PENDING) {
+            if (status == PaymentStatus.PENDING) {
                 return true;
             }
 

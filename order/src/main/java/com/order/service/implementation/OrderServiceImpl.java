@@ -48,8 +48,6 @@ public class OrderServiceImpl implements IOrderService {
     private final PaymentFeignClient paymentFeignClient;
     private final NotificationFeignClient notificationFeignClient;
 
-    private  Long paymentNotificationId = 0L;
-    private Long orderNotificationId= 0L;
 
     @Override
     public OrderResponseDto getOrderById(Long id) {
@@ -139,7 +137,6 @@ public class OrderServiceImpl implements IOrderService {
                 )
         ).getBody();
 
-        orderNotificationId = Long.valueOf(orderNotificationResponseDto.statusMsg());
 //         it will call payment then once payment is confirmed that order transition move to confirmed if payment failed
 //         then we will again release inventory product and make transition to order not created
         try {
@@ -156,11 +153,10 @@ public class OrderServiceImpl implements IOrderService {
                             NotificationType.PAYMENT_PENDING,
                             "POP UP",
                             "Payment",
-                            "Payment Failed",
+                            "Payment Pending",
                             order.getId().toString()
                     )
             ).getBody();
-            paymentNotificationId = Long.valueOf(paymentNotificationResponseDto.statusMsg());
 
             if (paymentResponseDto.statusMsg().equals(PaymentStatus.FAILED.toString())) {
                 for (int i = 1; i < 5; i++) {
@@ -169,7 +165,7 @@ public class OrderServiceImpl implements IOrderService {
                                     order.getId(),
                                     cartCheckOutRequest.customerId(),
                                     PaymentMethod.UPI)).getBody();
-                    if(paymentResponseDto.statusMsg().equals(PaymentStatus.FAILED.toString())
+                    if((PaymentStatus.FAILED.toString()).equals(paymentResponseDto.statusMsg())
                             || paymentResponseDto.statusMsg().equals(PaymentStatus.SUCCESS.toString())
                     ) break;
 
@@ -177,11 +173,14 @@ public class OrderServiceImpl implements IOrderService {
             }
             if(paymentResponseDto.statusMsg().equals(PaymentStatus.FAILED.toString())){
 
-                notificationFeignClient.updateNotification(
-                        paymentNotificationId,
-                        new UpdateNotificationDto(
+                notificationFeignClient.createNotification(
+                        new CreateNotificationDto(
+                                order.getCustomerId(),
                                 NotificationType.PAYMENT_FAILED,
-                                NotificationStatus.SENT
+                                "POP UP",
+                                "Payment",
+                                "Payment failed",
+                                order.getId().toString()
                         )
                 );
                 for(CartItemResponseDto cartItem:cartItemList){
@@ -198,29 +197,40 @@ public class OrderServiceImpl implements IOrderService {
 
             }
             if(paymentResponseDto.statusMsg().equals(PaymentStatus.SUCCESS.toString())){
-                notificationFeignClient.updateNotification(
-                        paymentNotificationId,
-                        new UpdateNotificationDto(
+                notificationFeignClient.createNotification(
+                        new CreateNotificationDto(
+                                order.getCustomerId(),
                                 NotificationType.PAYMENT_SUCCESS,
-                                NotificationStatus.SENT
+                                "POP UP",
+                                "Payment",
+                                "Payment Success",
+                                order.getId().toString()
                         )
                 );
                 order.setOrderStatus(OrderStatus.CONFIRMED);
                 orderRepository.save(order);
-                notificationFeignClient.updateNotification(
-                        orderNotificationId,
-                        new UpdateNotificationDto(NotificationType.ORDER_CONFIRMED,
-                                NotificationStatus.SENT
+                notificationFeignClient.createNotification(
+                        new CreateNotificationDto(
+                                order.getCustomerId(),
+                                NotificationType.ORDER_CONFIRMED,
+                                "POP UP",
+                                "Order",
+                                "Order Confirmed",
+                                order.getId().toString()
                         )
                 );
             }
         } catch (Exception e) {
             order.setOrderStatus(OrderStatus.CANCELLED);
             orderRepository.save(order);
-            notificationFeignClient.updateNotification(
-                    orderNotificationId,
-                    new UpdateNotificationDto(NotificationType.ORDER_CANCELLED,
-                            NotificationStatus.SENT
+            notificationFeignClient.createNotification(
+                    new CreateNotificationDto(
+                            order.getCustomerId(),
+                            NotificationType.ORDER_CANCELLED,
+                            "POP UP",
+                            "Order",
+                            "Order Cancelled",
+                            order.getId().toString()
                     )
             );
             for(CartItemResponseDto cartItem : cartItemList) {
@@ -285,17 +295,16 @@ public class OrderServiceImpl implements IOrderService {
         order.setOrderItems(List.of(orderItem));
         orderRepository.save(order);
 
-        ResponseDto orderNotificationResponseDto = notificationFeignClient.createNotification(
+        notificationFeignClient.createNotification(
                 new CreateNotificationDto(
                         order.getCustomerId(),
                         NotificationType.ORDER_CREATED,
                         "POP UP",
-                        "Order Creation",
+                        "Order",
                         "Order is Created Successfully",
                         order.getId().toString()
                 )
-        ).getBody();
-        orderNotificationId = Long.valueOf(orderNotificationResponseDto.statusMsg());
+        );
         // it will call payment then once payment is confirmed that order transition move to confirmed if payment failed
         // then we will again release inventory product and make transition to order not created
         try{
@@ -306,7 +315,7 @@ public class OrderServiceImpl implements IOrderService {
                             PaymentMethod.UPI
                     )
             ).getBody();
-            ResponseDto paymentNotificationResponseDto = notificationFeignClient.createNotification(
+            notificationFeignClient.createNotification(
                     new CreateNotificationDto(
                             order.getCustomerId(),
                             NotificationType.PAYMENT_PENDING,
@@ -315,8 +324,7 @@ public class OrderServiceImpl implements IOrderService {
                             "Payment Failed",
                             order.getId().toString()
                     )
-            ).getBody();
-            paymentNotificationId = Long.valueOf(paymentNotificationResponseDto.statusMsg());
+            );
             if (paymentResponseDto.statusMsg().equals(PaymentStatus.FAILED)) {
                 for (int i = 1; i < 6; i++) {
                     paymentResponseDto = paymentFeignClient.createPayment(new CreatePaymentDto(order.getId(), buyNowRequest.customerId(), PaymentMethod.UPI)).getBody();
@@ -327,11 +335,14 @@ public class OrderServiceImpl implements IOrderService {
                 }
             }
             if(paymentResponseDto.statusMsg().equals(PaymentStatus.FAILED)){
-                notificationFeignClient.updateNotification(
-                        paymentNotificationId,
-                        new UpdateNotificationDto(
+                notificationFeignClient.createNotification(
+                        new CreateNotificationDto(
+                                order.getCustomerId(),
                                 NotificationType.PAYMENT_FAILED,
-                                NotificationStatus.SENT
+                                "POP UP",
+                                "Payment",
+                                "Payment Failed",
+                                order.getId().toString()
                         )
                 );
                 inventoryFeignClient.updateStock(
@@ -343,30 +354,39 @@ public class OrderServiceImpl implements IOrderService {
                 );
             }
             if(paymentResponseDto.statusMsg().equals(PaymentStatus.SUCCESS)){
-                notificationFeignClient.updateNotification(
-                        paymentNotificationId,
-                        new UpdateNotificationDto(
+                notificationFeignClient.createNotification(
+                        new CreateNotificationDto(
+                                order.getCustomerId(),
                                 NotificationType.PAYMENT_SUCCESS,
-                                NotificationStatus.SENT
+                                "POP UP",
+                                "Payment",
+                                "Payment Success",
+                                order.getId().toString()
                         )
                 );
                 order.setOrderStatus(OrderStatus.CONFIRMED);
                 orderRepository.save(order);
-                notificationFeignClient.updateNotification(
-                        orderNotificationId,
-                        new UpdateNotificationDto(
+                notificationFeignClient.createNotification(
+                        new CreateNotificationDto(
+                                order.getCustomerId(),
                                 NotificationType.ORDER_CONFIRMED,
-                                NotificationStatus.SENT
+                                "POP UP",
+                                "Order",
+                                "Order is confirmed Successfully",
+                                order.getId().toString()
                         )
                 );
             }
         }
         catch (Exception e){
-            notificationFeignClient.updateNotification(
-                    orderNotificationId,
-                    new UpdateNotificationDto(
+            notificationFeignClient.createNotification(
+                    new CreateNotificationDto(
+                            order.getCustomerId(),
                             NotificationType.ORDER_CANCELLED,
-                            NotificationStatus.SENT
+                            "POP UP",
+                            "Order",
+                            "Order is Cancelled due to some issue",
+                            order.getId().toString()
                     )
             );
             order.setOrderStatus(OrderStatus.CANCELLED);

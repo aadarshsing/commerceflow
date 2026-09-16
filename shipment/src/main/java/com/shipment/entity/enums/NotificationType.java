@@ -1,0 +1,17 @@
+package com.shipment.entity.enums;
+
+public enum NotificationType {
+    ORDER_CREATED,
+    PAYMENT_PENDING,
+    PAYMENT_SUCCESS,
+    PAYMENT_FAILED,
+    ORDER_SHIPPED,
+    ORDER_DELIVERED,
+    ORDER_CANCELLED,
+    ORDER_CONFIRMED,
+    SHIPMENT_CREATED,
+    SHIPMENT_SHIPPED,
+    SHIPMENT_DELIVERED,
+    SHIPMENT_CANCELLED
+
+    }

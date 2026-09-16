@@ -1,9 +1,9 @@
-package com.order.service.client;
+package com.shipment.service.client;
 
-import com.order.dto.notification.CreateNotificationDto;
-import com.order.dto.notification.NotificationResponseDto;
-import com.order.dto.order.ResponseDto;
-import com.order.dto.notification.UpdateNotificationDto;
+import com.shipment.dto.notification.CreateNotificationDto;
+import com.shipment.dto.notification.NotificationResponseDto;
+import com.shipment.dto.notification.UpdateNotificationDto;
+import com.shipment.dto.shipment.ResponseDto;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -18,5 +18,13 @@ public interface NotificationFeignClient {
 
     @PostMapping("api/notifications")
     ResponseEntity<ResponseDto> createNotification(@Valid @RequestBody CreateNotificationDto createNotificationDto);
+
+    @PatchMapping("api/notifications/{notificationId}/status")
+    ResponseEntity<NotificationResponseDto> updateNotification(
+            @PathVariable
+            @NotNull(message = "Notification id cannot be null")
+            Long notificationId
+            , @RequestBody @Valid UpdateNotificationDto updateNotificationDto);
+
 
 }

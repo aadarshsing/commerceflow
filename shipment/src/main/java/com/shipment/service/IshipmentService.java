@@ -1,9 +1,9 @@
 package com.shipment.service;
 
-import com.shipment.dto.CreateShipmentDto;
-import com.shipment.dto.OrderAddressResponseDto;
-import com.shipment.dto.ResponseDto;
-import com.shipment.dto.ShipmentResponseDto;
+import com.shipment.dto.shipment.CreateShipmentDto;
+import com.shipment.dto.order.OrderAddressResponseDto;
+import com.shipment.dto.shipment.ResponseDto;
+import com.shipment.dto.shipment.ShipmentResponseDto;
 import com.shipment.entity.enums.ShipmentStatus;
 
 public interface IshipmentService {
@@ -41,16 +41,17 @@ public interface IshipmentService {
     /**
      *
      * @param status
+     * @param shipmentId
      * @return
      */
-    ShipmentResponseDto updateShipmentStatus(ShipmentStatus status);
+    ShipmentResponseDto updateShipmentStatus(ShipmentStatus status,Long shipmentId);
 
     /**
      *
      * @param shipmentId
      * @return
      */
-    ResponseDto cancelShipment(Long shipmentId);
+    ShipmentResponseDto cancelShipment(Long shipmentId);
 
 
 }

@@ -1,6 +1,6 @@
-package com.shipment.dto;
+package com.shipment.dto.shipment;
 
-import com.shipment.entity.enums.ShipmentStatus;
+import com.shipment.dto.order.OrderAddressResponseDto;
 
 public record CreateShipmentDto(
         Long orderId,
