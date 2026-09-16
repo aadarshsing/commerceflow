@@ -51,7 +51,14 @@ public class OrderController {
         OrderResponseDto orderResponseDto = orderService.getOrderById(id);
         return  ResponseEntity.ok(orderResponseDto);
     }
-
+    @GetMapping("/orders/{orderId}/exist")
+    public ResponseEntity<Boolean> checkOrder(
+            @NotNull(message = "orderId cannot be null")
+            @PathVariable Long orderId
+    ){
+        Boolean isPresent = orderService.checkOrder(orderId);
+        return ResponseEntity.ok(isPresent);
+    }
     @GetMapping("/customers/{customerId}/orders")
     public ResponseEntity<Page<OrderResponseDto>> listOrdersByCustomer(
             @NotNull(message = "customerId cannot be null")

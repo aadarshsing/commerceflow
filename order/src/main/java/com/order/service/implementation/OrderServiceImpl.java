@@ -22,6 +22,7 @@ import com.order.repository.OrderRepository;
 import com.order.service.IOrderService;
 import com.order.service.client.*;
 import lombok.RequiredArgsConstructor;
+import org.aspectj.weaver.ast.Or;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +33,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 
 @Service
@@ -442,5 +444,16 @@ public class OrderServiceImpl implements IOrderService {
         order.setOrderStatus(orderStatus);
 
         orderRepository.save(order);
+    }
+
+    @Override
+    public Boolean checkOrder(Long orderId) {
+        Optional<Order> order = orderRepository.findById(orderId);
+        if(order.isPresent()){
+            return Boolean.TRUE;
+        }
+        else{
+            return Boolean.FALSE;
+        }
     }
 }
