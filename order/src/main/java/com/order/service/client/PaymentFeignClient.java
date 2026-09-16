@@ -1,8 +1,8 @@
 package com.order.service.client;
 
 
-import com.order.dto.CreatePaymentDto;
-import com.order.dto.ResponseDto;
+import com.order.dto.payment.CreatePaymentDto;
+import com.order.dto.order.ResponseDto;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

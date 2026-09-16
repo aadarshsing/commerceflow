@@ -1,4 +1,4 @@
-package com.order.dto;
+package com.order.dto.inventory;
 
 
 import com.order.entity.enums.InventoryStatus;

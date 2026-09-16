@@ -5,7 +5,7 @@ import com.catalog.product.dto.ProductResponseDto;
 import com.catalog.product.dto.UpdateProductRequestDto;
 import com.catalog.product.entity.enums.ProductStatus;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -39,15 +39,17 @@ public interface IproductService {
 
     /**
      *
-     * @param pageable
+     * @param cursor
+     * @param limit
      * @return -- it returns all the product based on the pagination and sorting which will provide through api from client side
      */
-    Page<ProductResponseDto> listProduduct(
+    Slice<ProductResponseDto> listProduduct(
             ProductStatus status,
             Long sellerId,Long categoryId,
             String name,
             BigDecimal minPrice,BigDecimal maxPrice,
-            Pageable pageable);
+            Long cursor,
+            int limit);
 
     /**
      *

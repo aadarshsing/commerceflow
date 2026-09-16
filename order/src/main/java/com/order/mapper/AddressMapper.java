@@ -1,6 +1,6 @@
 package com.order.mapper;
 
-import com.order.dto.OrderAddressResponseDto;
+import com.order.dto.order.OrderAddressResponseDto;
 import com.order.entity.OrderAddress;
 
 public class AddressMapper {

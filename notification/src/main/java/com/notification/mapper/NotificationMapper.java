@@ -4,6 +4,7 @@ import com.notification.dto.CreateNotificationDto;
 import com.notification.dto.NotificationResponseDto;
 import com.notification.dto.UpdateNotificationDto;
 import com.notification.entity.Notification;
+import com.notification.entity.enums.NotificationStatus;
 
 public class NotificationMapper {
 
@@ -15,6 +16,7 @@ public class NotificationMapper {
         notification.setSubject(createNotificationDto.subject());
         notification.setMessage(createNotificationDto.message());
         notification.setReferenceId(createNotificationDto.referenceId());
+        notification.setStatus(NotificationStatus.SENT);
         return notification;
 
     }
@@ -33,6 +35,7 @@ public class NotificationMapper {
     }
     public static Notification updateNotificationDtoToNotificationMapper(Notification notification, UpdateNotificationDto updateNotificationDto){
         notification.setStatus(updateNotificationDto.notificationStatus());
+        notification.setType(updateNotificationDto.notificationType());
         return notification;
     }
 

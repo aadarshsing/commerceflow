@@ -1,10 +1,10 @@
 package com.order.controller;
 
 
-import com.order.dto.BuyNowRequest;
-import com.order.dto.CartCheckOutRequest;
-import com.order.dto.OrderResponseDto;
-import com.order.dto.ResponseDto;
+import com.order.dto.order.BuyNowRequest;
+import com.order.dto.cart.CartCheckOutRequest;
+import com.order.dto.order.OrderResponseDto;
+import com.order.dto.order.ResponseDto;
 import com.order.entity.enums.OrderStatus;
 import com.order.service.IOrderService;
 import jakarta.validation.Valid;
@@ -16,8 +16,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping(path = "/api",produces = {MediaType.APPLICATION_JSON_VALUE})

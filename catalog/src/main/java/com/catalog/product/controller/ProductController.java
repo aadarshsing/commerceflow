@@ -11,6 +11,7 @@ import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
@@ -75,29 +76,25 @@ public class ProductController {
     }
 
     @GetMapping("/products")
-    ResponseEntity<Page<ProductResponseDto>> listProduct(
+    ResponseEntity<Slice<ProductResponseDto>> listProduct(
             @RequestParam(required = false) ProductStatus status,
             @RequestParam(required = false) Long sellerId,
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) BigDecimal minPrice,
             @RequestParam(required = false) BigDecimal maxPrice,
-            @PageableDefault(
-                    page = 0,
-                    size = 10,
-                    sort = "name",
-                    direction = Sort.Direction.ASC
-            )
-            Pageable pageable){
+            @RequestParam(required = false) Long cursor,
+            @RequestParam(defaultValue = "10") int limit){
 
-        Page<ProductResponseDto> productResponseDtoPage = iproductService.listProduduct(
+        Slice<ProductResponseDto> productResponseDtoPage = iproductService.listProduduct(
                 status,
                 sellerId,
                 categoryId,
                 name,
                 minPrice,
                 maxPrice,
-                pageable);
+                cursor,
+                limit);
 
         return  ResponseEntity.ok(productResponseDtoPage);
     }

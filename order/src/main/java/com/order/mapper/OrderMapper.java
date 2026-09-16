@@ -1,6 +1,11 @@
 package com.order.mapper;
 
 import com.order.dto.*;
+import com.order.dto.cart.CartItemResponseDto;
+import com.order.dto.cart.CartResponseDto;
+import com.order.dto.order.BuyNowRequest;
+import com.order.dto.order.OrderItemResponseDto;
+import com.order.dto.order.OrderResponseDto;
 import com.order.entity.Order;
 import com.order.entity.OrderAddress;
 import com.order.entity.OrderItem;
@@ -11,7 +16,7 @@ import java.math.BigDecimal;
 public class OrderMapper {
 
 
-    public  static Order cartToOrderMapper(CartResponseDto cartResponseDto,Order order){
+    public  static Order cartToOrderMapper(CartResponseDto cartResponseDto, Order order){
 
         order.setOrderStatus(OrderStatus.CREATED);
         order.setCustomerId(cartResponseDto.getCustomerId());
@@ -30,7 +35,7 @@ public class OrderMapper {
         return  orderItem;
 
     }
-    public  static OrderItem buyNowRequestToOrderMapper(BuyNowRequest buyNowRequest,OrderItem orderItem,ProductResponseDto product){
+    public  static OrderItem buyNowRequestToOrderMapper(BuyNowRequest buyNowRequest, OrderItem orderItem, ProductResponseDto product){
 
         orderItem.setQuantity(buyNowRequest.quantity());orderItem.setUnitPrice(product.price());
         orderItem.setProductId(product.id());

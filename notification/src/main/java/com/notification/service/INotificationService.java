@@ -5,6 +5,8 @@ import com.notification.dto.NotificationResponseDto;
 import com.notification.dto.ResponseDto;
 import com.notification.dto.UpdateNotificationDto;
 
+import java.util.List;
+
 public interface INotificationService {
 
     /**
@@ -26,7 +28,7 @@ public interface INotificationService {
      * @param customerId
      * @return NotificationResponseDto
      */
-    NotificationResponseDto getNotificationByCustomerId(Long customerId);
+    List<NotificationResponseDto> getNotificationByCustomerId(Long customerId);
 
 
     /**

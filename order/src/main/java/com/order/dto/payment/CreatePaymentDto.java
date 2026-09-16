@@ -1,4 +1,4 @@
-package com.order.dto;
+package com.order.dto.payment;
 
 import com.order.entity.enums.PaymentMethod;
 import jakarta.validation.constraints.NotNull;

@@ -9,16 +9,17 @@
         <outputRelativeToContentRoot value="true" />
         <module name="eurekaServer" />
       </profile>
-      <profile name="Annotation profile for payment" enabled="true">
+      <profile name="Annotation profile for order" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="false">
           <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.46/lombok-1.18.46.jar" />
         </processorPath>
+        <module name="notification" />
+        <module name="catalog" />
         <module name="payment" />
         <module name="inventory" />
-        <module name="catalog" />
         <module name="cart" />
         <module name="order" />
         <module name="customer" />
@@ -32,6 +33,7 @@
       <module name="customer" options="-parameters" />
       <module name="eurekaServer" options="-parameters" />
       <module name="inventory" options="-parameters" />
+      <module name="notification" options="-parameters" />
       <module name="order" options="-parameters" />
       <module name="payment" options="-parameters" />
     </option>

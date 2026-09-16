@@ -1,7 +1,7 @@
 package com.order.exception;
 
 
-import com.order.dto.ErrorResponseDto;
+import com.order.dto.order.ErrorResponseDto;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

@@ -1,6 +1,7 @@
-package com.order.dto;
+package com.order.dto.cart;
 
 
+import com.order.dto.ProductResponseDto;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

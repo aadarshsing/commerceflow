@@ -1,4 +1,4 @@
-package com.order.dto;
+package com.order.dto.cart;
 
 import com.order.entity.enums.CartStatus;
 import lombok.AllArgsConstructor;

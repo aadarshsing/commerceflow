@@ -13,6 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class NotificationServiceImpl implements INotificationService {
 
@@ -25,7 +27,7 @@ public class NotificationServiceImpl implements INotificationService {
         notificationRepository.save(notification);
         return new ResponseDto(
                 HttpStatus.CREATED.toString(),
-                "Notification created Successfully "+ notification.getId()
+                notification.getId().toString()
         );
     }
 
@@ -38,11 +40,11 @@ public class NotificationServiceImpl implements INotificationService {
     }
 
     @Override
-    public NotificationResponseDto getNotificationByCustomerId(Long customerId) {
-        Notification notification = notificationRepository.findByCustomerId(customerId).orElseThrow(
+    public List<NotificationResponseDto> getNotificationByCustomerId(Long customerId) {
+        List<Notification> notification = notificationRepository.findAllByCustomerId(customerId).orElseThrow(
                 ()-> new ResourceNotFoundException("Notification","NotificationId",customerId.toString())
         );
-        return NotificationMapper.notificationToNotificationResponseDtoMapper(notification);
+        return notification.stream().map(NotificationMapper::notificationToNotificationResponseDtoMapper).toList();
     }
 
     @Override

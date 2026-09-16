@@ -16,6 +16,11 @@ spring:
   sql:
     init:
       mode: always
+  cloud:
+    openfeign:
+      httpclient:
+        hc5:
+          enabled: true
 eureka:
   instance:
     preferIpAddress: true

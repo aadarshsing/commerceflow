@@ -1,4 +1,4 @@
-package com.notification.entity.enums;
+package com.order.entity.enums;
 
 public enum NotificationType {
     ORDER_CREATED,

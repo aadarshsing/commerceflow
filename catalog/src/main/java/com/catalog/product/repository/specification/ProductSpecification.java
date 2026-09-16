@@ -8,6 +8,16 @@ import java.math.BigDecimal;
 
 public class ProductSpecification {
 
+    public static Specification<Product> hasCursor(Long cursor) {
+        return ((root, query, criteriaBuilder) -> {
+            if (cursor == null) {
+                return null;
+            }
+            return criteriaBuilder.greaterThan(root.get("productId"), cursor);
+        }
+        );
+    }
+
     public static Specification<Product> hasStatus(ProductStatus status) {
 
         return ((root, query, criteriaBuilder) ->

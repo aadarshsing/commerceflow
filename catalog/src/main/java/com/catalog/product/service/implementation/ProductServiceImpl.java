@@ -19,10 +19,7 @@ import com.catalog.product.service.client.InventoryFeignClient;
 import com.catalog.seller.entity.Seller;
 import com.catalog.seller.repository.SellerRepository;
 import lombok.AllArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
@@ -118,7 +115,7 @@ public class ProductServiceImpl implements IproductService {
     }
 
     @Override
-    public Page<ProductResponseDto> listProduduct(ProductStatus status, Long sellerId, Long categoryId, String name, BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable) {
+    public Slice<ProductResponseDto> listProduduct(ProductStatus status, Long sellerId, Long categoryId, String name, BigDecimal minPrice, BigDecimal maxPrice, Long cursor, int limit) {
 
         Specification<Product> specification =  Specification
                 .where(ProductSpecification.hasStatus(status))
@@ -126,14 +123,15 @@ public class ProductServiceImpl implements IproductService {
                 .and(ProductSpecification.hasSellerId(sellerId))
                 .and(ProductSpecification.nameContains(name))
                 .and(ProductSpecification.priceGreaterThanOrEqual(minPrice))
-                .and(ProductSpecification.priceLessThanOrEqual(maxPrice));
+                .and(ProductSpecification.priceLessThanOrEqual(maxPrice))
+                .and(ProductSpecification.hasCursor(cursor));
 
-        Pageable pageable1 = PageRequest.of(
-                4,10,
-                Sort.by(Sort.Direction.ASC,"name")
+        Pageable pageable = PageRequest.of(
+                0,limit,
+                Sort.by(Sort.Direction.ASC,"productId")
         );
 
-        Page<Product> listProducts = productRepository.findAll(
+        Slice<Product> listProducts = productRepository.findAll(
                 specification,
                 pageable
         );
