@@ -76,10 +76,10 @@ public class PaymentServiceImpl implements IPaymentService {
         paymentRepository.save(payment);
         notificationFeignClient.createNotification(
                 new CreateNotificationDto(
-                       payment.getCustomerId(),
+                       payment.getOrderId(),
                         NotificationType.PAYMENT_REFUND,
                         "SMS",
-                        "Payment",
+                        "Order",
                         "Payment is Refunded to original Payment Account",
                         paymentId.toString()
                 )

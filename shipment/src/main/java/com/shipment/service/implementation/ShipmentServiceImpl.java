@@ -62,7 +62,7 @@ public class ShipmentServiceImpl implements IshipmentService {
                         shipmentId.toString()
                 )
         );
-        return ShipmentMapper.shipmentToshipmentResponseDtoMapper(shipment);
+        return ShipmentMapper.shipmentToShipmentResponseDtoMapper(shipment);
     }
 
     @Override
@@ -74,7 +74,7 @@ public class ShipmentServiceImpl implements IshipmentService {
                         customerId.toString()
                 )
         );
-        return ShipmentMapper.shipmentToshipmentResponseDtoMapper(shipment);
+        return ShipmentMapper.shipmentToShipmentResponseDtoMapper(shipment);
     }
 
     @Override
@@ -86,7 +86,7 @@ public class ShipmentServiceImpl implements IshipmentService {
                         orderId.toString()
                 )
         );
-        return ShipmentMapper.shipmentToshipmentResponseDtoMapper(shipment);
+        return ShipmentMapper.shipmentToShipmentResponseDtoMapper(shipment);
     }
 
     @Override
@@ -147,12 +147,15 @@ public class ShipmentServiceImpl implements IshipmentService {
         if (status == ShipmentStatus.SHIPPED) {
             shipment.setShippedAt(Instant.now());
         }
+        if(status == ShipmentStatus.DELIVERED){
+            shipment.setDeliveredAt(Instant.now());
+        }
 
         Shipment savedShipment = shipmentRepository.save(shipment);
 
         sendShipmentNotification(savedShipment);
 
-        return ShipmentMapper.shipmentToshipmentResponseDtoMapper(savedShipment);
+        return ShipmentMapper.shipmentToShipmentResponseDtoMapper(savedShipment);
     }
 
     @Override
@@ -205,7 +208,7 @@ public class ShipmentServiceImpl implements IshipmentService {
 
         sendShipmentCancellationNotification(savedShipment);
 
-        return ShipmentMapper.shipmentToshipmentResponseDtoMapper(savedShipment);
+        return ShipmentMapper.shipmentToShipmentResponseDtoMapper(savedShipment);
     }
     private void sendShipmentNotification(Shipment shipment) {
 

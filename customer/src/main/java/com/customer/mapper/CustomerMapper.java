@@ -21,7 +21,7 @@ public class CustomerMapper {
         customer.setName(createCustomerRequest.name());
         customer.setEmail(createCustomerRequest.email());
         customer.setPassword(createCustomerRequest.password());
-        customer.setCustomerStatus(CustomerStatus.INITIATED);
+        customer.setCustomerStatus(CustomerStatus.ACTIVE);
         customer.setPhoneNumber(createCustomerRequest.phoneNumber());
 
         return  customer;

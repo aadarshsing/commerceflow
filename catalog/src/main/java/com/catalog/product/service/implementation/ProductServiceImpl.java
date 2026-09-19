@@ -128,7 +128,7 @@ public class ProductServiceImpl implements IproductService {
 
         Pageable pageable = PageRequest.of(
                 0,limit,
-                Sort.by(Sort.Direction.ASC,"productId")
+                Sort.by(Sort.Direction.ASC,"id")
         );
 
         Slice<Product> listProducts = productRepository.findAll(

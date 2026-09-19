@@ -1,5 +1,6 @@
 package com.shipment.dto.shipment;
 
+import com.shipment.dto.order.OrderAddressResponseDto;
 import com.shipment.entity.ShippingAddress;
 import com.shipment.entity.enums.ShipmentStatus;
 
@@ -12,7 +13,7 @@ public record ShipmentResponseDto(
       String trackingNumber,
       String carrier,
       ShipmentStatus status,
-      ShippingAddress shippingAddress,
+      ShipmentAddressResponseDto shippingAddress,
       Instant estimatedDeliveryDate,
       Instant shippedAt,
       Instant deliveredAt

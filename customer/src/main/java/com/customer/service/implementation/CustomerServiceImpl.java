@@ -5,6 +5,7 @@ import com.customer.dto.customer.CreateCustomerRequest;
 import com.customer.dto.customer.CustomerResponseDto;
 import com.customer.dto.customer.UpdateCustomerDto;
 import com.customer.entity.Customer;
+import com.customer.entity.enums.CustomerStatus;
 import com.customer.exception.CustomerAlreadyExistException;
 import com.customer.exception.DuplicateResourceException;
 import com.customer.exception.ResourceNotFoundException;
@@ -96,7 +97,7 @@ public class CustomerServiceImpl implements IcustomerService {
     @Override
     public Boolean checkCustomer(Long customerId) {
         Optional<Customer> customer = customerRepository.findById(customerId);
-        if(customer.isPresent()){
+        if(customer.isPresent() && customer.get().getCustomerStatus().equals(CustomerStatus.ACTIVE)){
             return  Boolean.TRUE;
         }
         else{

@@ -2,6 +2,7 @@ package com.shipment.mapper;
 
 import com.shipment.dto.shipment.CreateShipmentDto;
 import com.shipment.dto.order.OrderAddressResponseDto;
+import com.shipment.dto.shipment.ShipmentAddressResponseDto;
 import com.shipment.dto.shipment.ShipmentResponseDto;
 import com.shipment.entity.Shipment;
 import com.shipment.entity.ShippingAddress;
@@ -44,7 +45,7 @@ public class ShipmentMapper {
         return shippingAddress;
     }
 
-    public static ShipmentResponseDto shipmentToshipmentResponseDtoMapper (Shipment shipment){
+    public static ShipmentResponseDto shipmentToShipmentResponseDtoMapper (Shipment shipment){
         return new ShipmentResponseDto(
                 shipment.getId(),
                 shipment.getOrderId(),
@@ -52,10 +53,22 @@ public class ShipmentMapper {
                 shipment.getTrackingNumber(),
                 shipment.getCarrier(),
                 shipment.getStatus(),
-                shipment.getShippingAddress(),
+                shipmentAddressToDto(shipment.getShippingAddress()),
                 shipment.getEstimatedDeliveryDate(),
                 shipment.getShippedAt(),
                 shipment.getDeliveredAt()
+        );
+    }
+    public static ShipmentAddressResponseDto shipmentAddressToDto(ShippingAddress shippingAddress ){
+        return new ShipmentAddressResponseDto(
+                shippingAddress.getId(),
+                shippingAddress.getAddressLine1(),
+                shippingAddress.getAddressLine2(),
+                shippingAddress.getCity(),
+                shippingAddress.getState(),
+                shippingAddress.getCountry(),
+                shippingAddress.getPostalCode(),
+                shippingAddress.getPhoneNumber()
         );
     }
 }

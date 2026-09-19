@@ -57,6 +57,7 @@ public class ShipmentController {
             @PathVariable
             Long shipmentId,
             @NotNull(message = "shipment Status cannot be null")
+            @RequestParam
             ShipmentStatus shipmentStatus){
 
         ShipmentResponseDto shipmentResponseDto = ishipmentService.updateShipmentStatus(shipmentStatus,shipmentId);

@@ -13,7 +13,7 @@ public class ProductSpecification {
             if (cursor == null) {
                 return null;
             }
-            return criteriaBuilder.greaterThan(root.get("productId"), cursor);
+            return criteriaBuilder.greaterThan(root.get("id"), cursor);
         }
         );
     }

@@ -1,4 +1,5 @@
 package com.order.service.implementation;
+
 import com.order.dto.order.CartCheckOutRequest;
 import com.order.dto.order.BuyNowRequest;
 import com.order.dto.order.OrderResponseDto;
@@ -82,7 +83,7 @@ public class OrderServiceImpl implements IOrderService {
     public void createOrderFromCart(CartCheckOutRequest cartCheckOutRequest) {
 
         CartResponseDto cart = cartFeignClient.getCart(cartCheckOutRequest.cartId()).getBody();
-        if(cart.getItems().size() == 0){
+        if(cart.getItems().isEmpty()){
             throw new IllegalStateException("Cart is Empty "+cart.getItems());
         }
         Boolean isExist = customerFeignClient.checkCustomerExist(cartCheckOutRequest.customerId()).getBody();
@@ -573,7 +574,7 @@ public class OrderServiceImpl implements IOrderService {
     @Override
     public Boolean checkOrder(Long orderId) {
         Optional<Order> order = orderRepository.findById(orderId);
-        if(order.isPresent()){
+        if(order.isPresent() && order.get().getOrderStatus().equals(OrderStatus.CONFIRMED)){
             return Boolean.TRUE;
         }
         else{
