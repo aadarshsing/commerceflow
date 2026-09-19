@@ -2,7 +2,6 @@ package com.shipment.service.implementation;
 
 import com.shipment.dto.notification.CreateNotificationDto;
 import com.shipment.dto.shipment.CreateShipmentDto;
-import com.shipment.dto.order.OrderAddressResponseDto;
 import com.shipment.dto.shipment.ResponseDto;
 import com.shipment.dto.shipment.ShipmentResponseDto;
 import com.shipment.entity.Shipment;

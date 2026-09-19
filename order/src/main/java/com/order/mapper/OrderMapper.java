@@ -1,8 +1,5 @@
 package com.order.mapper;
 
-import com.order.dto.*;
-import com.order.dto.cart.CartItemResponseDto;
-import com.order.dto.cart.CartResponseDto;
 import com.order.dto.order.BuyNowRequest;
 import com.order.dto.order.OrderItemResponseDto;
 import com.order.dto.order.OrderResponseDto;
@@ -10,6 +7,10 @@ import com.order.entity.Order;
 import com.order.entity.OrderAddress;
 import com.order.entity.OrderItem;
 import com.order.entity.enums.OrderStatus;
+import org.commerceflow.dto.cart.CartItemResponseDto;
+import org.commerceflow.dto.cart.CartResponseDto;
+import org.commerceflow.dto.catalog.ProductResponseDto;
+import org.commerceflow.dto.customer.AddressResponseDto;
 
 import java.math.BigDecimal;
 
@@ -45,7 +46,7 @@ public class OrderMapper {
         return  orderItem;
 
     }
-    public  static OrderAddress shippingAddressToOrderAddress(AddressResponseDto address,OrderAddress orderAddress){
+    public  static OrderAddress shippingAddressToOrderAddress(AddressResponseDto address, OrderAddress orderAddress){
 
         orderAddress.setAddressLine1(address.addressLine1());
         orderAddress.setAddressLine2(address.addressLine2());

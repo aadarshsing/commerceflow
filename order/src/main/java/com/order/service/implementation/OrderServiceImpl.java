@@ -1,23 +1,12 @@
 package com.order.service.implementation;
-import com.order.dto.*;
 import com.order.dto.order.CartCheckOutRequest;
-import com.order.dto.cart.CartItemResponseDto;
-import com.order.dto.cart.CartResponseDto;
-import com.order.dto.notification.CreateNotificationDto;
 import com.order.dto.order.BuyNowRequest;
 import com.order.dto.order.OrderResponseDto;
 import com.order.dto.order.ResponseDto;
-import com.order.dto.payment.CreatePaymentDto;
-import com.order.dto.payment.PaymentResponseDto;
-import com.order.dto.shipment.CreateShipmentDto;
 import com.order.entity.Order;
 import com.order.entity.OrderAddress;
 import com.order.entity.OrderItem;
 import com.order.entity.enums.*;
-import com.order.entity.enums.cart.CartStatus;
-import com.order.entity.enums.notification.NotificationType;
-import com.order.entity.enums.payment.PaymentMethod;
-import com.order.entity.enums.payment.PaymentStatus;
 import com.order.exception.ResourceNotActiveException;
 import com.order.exception.ResourceNotFoundException;
 import com.order.mapper.AddressMapper;
@@ -26,8 +15,20 @@ import com.order.repository.OrderRepository;
 import com.order.service.IOrderService;
 import com.order.service.client.*;
 import lombok.RequiredArgsConstructor;
+import org.commerceflow.dto.cart.CartItemResponseDto;
+import org.commerceflow.dto.cart.CartResponseDto;
+import org.commerceflow.dto.catalog.ProductResponseDto;
+import org.commerceflow.dto.customer.AddressResponseDto;
 import org.commerceflow.dto.inventory.UpdateInventoryDto;
+import org.commerceflow.dto.notification.CreateNotificationDto;
+import org.commerceflow.dto.payment.CreatePaymentDto;
+import org.commerceflow.dto.payment.PaymentResponseDto;
+import org.commerceflow.dto.shipment.CreateShipmentDto;
+import org.commerceflow.enums.cart.CartStatus;
 import org.commerceflow.enums.inventory.InventoryOperation;
+import org.commerceflow.enums.notification.NotificationType;
+import org.commerceflow.enums.payment.PaymentMethod;
+import org.commerceflow.enums.payment.PaymentStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -241,7 +242,7 @@ public class OrderServiceImpl implements IOrderService {
                     throw new RuntimeException("Payment response is null");
                 }
 
-                if (HttpStatus.OK.toString().equals(responseDto.statusCode())) {
+                if (HttpStatus.CREATED.toString().equals(responseDto.statusCode())) {
                     notificationFeignClient.createNotification(
                             new CreateNotificationDto(
                                     cartCheckOutRequest.customerId(),
@@ -437,7 +438,7 @@ public class OrderServiceImpl implements IOrderService {
                     throw new RuntimeException("Payment response is null");
                 }
 
-                if (HttpStatus.OK.toString().equals(responseDto.statusCode())) {
+                if (HttpStatus.CREATED.toString().equals(responseDto.statusCode())) {
                     notificationFeignClient.createNotification(
                             new CreateNotificationDto(
                                     buyNowRequest.customerId(),
@@ -542,8 +543,8 @@ public class OrderServiceImpl implements IOrderService {
             );
         }
         order.setOrderStatus(orderStatus);
-
         orderRepository.save(order);
+        sendOrderNotification(order,orderStatus);
     }
     private void sendOrderNotification(Order order,OrderStatus orderStatus){
         NotificationType notificationType = switch (orderStatus){

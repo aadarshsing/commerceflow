@@ -1,8 +1,8 @@
 package com.order.service.client;
 
-import com.order.dto.cart.CartResponseDto;
 import com.order.dto.order.ResponseDto;
 import jakarta.validation.constraints.NotNull;
+import org.commerceflow.dto.cart.CartResponseDto;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;

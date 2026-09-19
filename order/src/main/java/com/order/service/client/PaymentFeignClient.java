@@ -1,10 +1,10 @@
 package com.order.service.client;
 
 
-import com.order.dto.payment.CreatePaymentDto;
 import com.order.dto.order.ResponseDto;
-import com.order.dto.payment.PaymentResponseDto;
 import jakarta.validation.constraints.NotNull;
+import org.commerceflow.dto.payment.CreatePaymentDto;
+import org.commerceflow.dto.payment.PaymentResponseDto;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
