@@ -4,8 +4,7 @@ package com.payment.entity;
 import com.payment.entity.enums.payment.PaymentMethod;
 import com.payment.entity.enums.payment.PaymentStatus;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.math.BigDecimal;
 
@@ -15,6 +14,9 @@ import java.math.BigDecimal;
 )
 @Getter
 @Setter
+@Builder(toBuilder = true)
+@NoArgsConstructor
+@AllArgsConstructor
 public class Payment extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

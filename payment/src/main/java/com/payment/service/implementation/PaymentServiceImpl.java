@@ -1,13 +1,9 @@
 package com.payment.service.implementation;
 
-import com.payment.dto.notification.CreateNotificationDto;
 import com.payment.dto.payment.CreatePaymentDto;
-import com.payment.dto.order.OrderResponseDto;
 import com.payment.dto.payment.PaymentResponseDto;
 import com.payment.dto.payment.ResponseDto;
 import com.payment.entity.Payment;
-import com.payment.entity.enums.notification.NotificationType;
-import com.payment.entity.enums.order.OrderStatus;
 import com.payment.entity.enums.payment.PaymentMethod;
 import com.payment.entity.enums.payment.PaymentStatus;
 import com.payment.exception.ResourceNotFoundException;
@@ -17,6 +13,10 @@ import com.payment.service.IPaymentService;
 import com.payment.service.client.NotificationFeignClient;
 import com.payment.service.client.OrderFeignClient;
 import lombok.AllArgsConstructor;
+import org.commerceflow.dto.notification.CreateNotificationDto;
+import org.commerceflow.dto.order.OrderResponseDto;
+import org.commerceflow.enums.notification.NotificationType;
+import org.commerceflow.enums.order.OrderStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @AllArgsConstructor
@@ -38,8 +39,11 @@ public class PaymentServiceImpl implements IPaymentService {
     public ResponseDto createPayment(CreatePaymentDto createPaymentDto) {
 
         OrderResponseDto orderResponseDto = orderFeignClient.getOrder(createPaymentDto.orderId()).getBody();
-        if(!orderResponseDto.orderStatus().equals(OrderStatus.CREATED)){
+        if(!(OrderStatus.CREATED).equals(orderResponseDto.orderStatus())){
             throw new IllegalStateException("Order status is not valid as it is "+ orderResponseDto.orderStatus());
+        }
+        if(!orderResponseDto.customerId().equals(createPaymentDto.customerId())){
+            throw new IllegalArgumentException("Order is not associated with given Customer "+createPaymentDto.customerId());
         }
         Optional<Payment> payment1 = paymentRepository.findByOrderIdAndPaymentStatus(createPaymentDto.orderId(), PaymentStatus.SUCCESS);
         if (payment1.isPresent()){
@@ -50,9 +54,19 @@ public class PaymentServiceImpl implements IPaymentService {
         payment.setOrderId(orderResponseDto.id());
         payment.setCustomerId(orderResponseDto.customerId());
         paymentRepository.save(payment);
+        notificationFeignClient.createNotification(
+                new CreateNotificationDto(
+                        createPaymentDto.customerId(),
+                        NotificationType.PAYMENT_SUCCESS,
+                        "SMS",
+                        "Order",
+                        "Payment is Success",
+                        createPaymentDto.orderId().toString()
+                )
+        );
         return  new ResponseDto(
                 HttpStatus.CREATED.toString(),
-                PaymentStatus.SUCCESS
+                PaymentStatus.SUCCESS.toString()
         );
 
     }
@@ -60,23 +74,26 @@ public class PaymentServiceImpl implements IPaymentService {
     @Override
     public ResponseDto createRefundPayment(Long paymentId, Long orderId) {
 
-        Optional<Payment> payment1 = paymentRepository.findByOrderIdAndPaymentStatus(orderId, PaymentStatus.SUCCESS);
-        if (payment1.isEmpty()){
-            throw new IllegalStateException("Payment is not Successes with given payment Id "+payment1.get().getId());
+        Payment payment1 = paymentRepository.findByOrderIdAndPaymentStatus(orderId, PaymentStatus.SUCCESS).orElseThrow(
+                ()-> new ResourceNotFoundException("Payment","PaymentId & PaymentStatus_Success",paymentId.toString() +" , "+PaymentStatus.SUCCESS)
+        );
+
+        if(!payment1.getId().equals(paymentId)){
+            throw new IllegalArgumentException("Payment is not associated with given Order "+orderId);
         }
         Payment payment = PaymentMapper.createPaymentDtoToPaymentMapper(
                 new CreatePaymentDto(
                         orderId,
-                        payment1.get().getCustomerId(),
-                        payment1.get().getPaymentMethod()
+                        payment1.getCustomerId(),
+                        payment1.getPaymentMethod()
                 )
                 ,new Payment());
-        payment.setAmount(payment1.get().getAmount());
+        payment.setAmount(payment1.getAmount());
         payment.setStatus(PaymentStatus.REFUNDED);
         paymentRepository.save(payment);
         notificationFeignClient.createNotification(
                 new CreateNotificationDto(
-                       payment.getOrderId(),
+                       payment1.getCustomerId(),
                         NotificationType.PAYMENT_REFUND,
                         "SMS",
                         "Order",
@@ -86,7 +103,7 @@ public class PaymentServiceImpl implements IPaymentService {
         );
         return  new ResponseDto(
                 HttpStatus.CREATED.toString(),
-                PaymentStatus.REFUNDED
+                PaymentStatus.REFUNDED.toString()
         );
     }
 
@@ -95,7 +112,7 @@ public class PaymentServiceImpl implements IPaymentService {
         Sort sort = null;
         if (paymentStatus!=null){
             sort = Sort.by(
-                    Sort.Direction.DESC,"paymentStatus"
+                    Sort.Direction.DESC,"status"
             );
         }
         else if(paymentMethod!=null){
@@ -115,6 +132,9 @@ public class PaymentServiceImpl implements IPaymentService {
                 sort
         );
         Page<Payment>payments = paymentRepository.findByCustomerId(customerId,pageable);
+        if(payments.isEmpty()){
+            throw new ResourceNotFoundException("Payments","CustomerId",customerId.toString());
+        }
         return payments.map(PaymentMapper::paymentToPaymentResponseDto);
     }
 
@@ -123,6 +143,9 @@ public class PaymentServiceImpl implements IPaymentService {
         List<Payment> payments = paymentRepository.findByOrderId(orderId).orElseThrow(
                 ()-> new ResourceNotFoundException("Payments","orderId",orderId.toString())
         );
+        if(payments.isEmpty()){
+            throw new ResourceNotFoundException("Payments","orderId",orderId.toString());
+        }
         return payments.stream().map(PaymentMapper::paymentToPaymentResponseDto).toList();
 
     }
@@ -137,21 +160,40 @@ public class PaymentServiceImpl implements IPaymentService {
 
     @Override
     public ResponseDto updatePaymentStatus(Long id,PaymentStatus status) {
-        Payment payment = paymentRepository.findById(id).orElseThrow(
+        Payment payment1 = paymentRepository.findById(id).orElseThrow(
                 ()-> new ResourceNotFoundException("Payments","orderId",id.toString())
         );
-        if(isValidTransition(payment.getStatus(),status)){
-            payment.setStatus(status);
+        Optional<Payment> paymentWithStatus = paymentRepository.findByIdAndStatus(id,status);
+        if(paymentWithStatus.isPresent()){
+            throw new IllegalStateException("Payment already Exist with given Status "+ status.toString());
+        }
+        if(isValidTransition(payment1.getStatus(),status)){
+            Payment payment = payment1.toBuilder()
+                    .id(null)
+                    .status(status)
+                    .transactionReference("TXN-" + UUID.randomUUID())
+                    .build();
             paymentRepository.save(payment);
+//            notificationFeignClient.createNotification(
+//                    new CreateNotificationDto(
+//                            payment1.getCustomerId(),
+//                            NotificationType.,
+//                            "SMS",
+//                            "Order",
+//                            "Payment is Success",
+//                            payment1.getOrderId().toString()
+//                    )
+//            );
+
             return new ResponseDto(
                     HttpStatus.OK.toString(),
-                    status
+                    status.toString()
             );
         }
         else{
             throw new IllegalStateException(
                     "Invalid payment status transition from "
-                            + payment.getStatus() + " to " + status
+                            + payment1.getStatus() + " to " + status
             );
         }
 
@@ -159,20 +201,32 @@ public class PaymentServiceImpl implements IPaymentService {
 
     @Override
     public ResponseDto cancelPayment(Long id) {
-        Payment payment = paymentRepository.findById(id).orElseThrow(
+        Payment payment1 = paymentRepository.findById(id).orElseThrow(
                 ()-> new ResourceNotFoundException("Payments","orderId",id.toString())
         );
-        if(isValidTransition(payment.getStatus(),PaymentStatus.CANCELLED)){
-            payment.setStatus(PaymentStatus.CANCELLED);
+
+        Optional<Payment> cancelledPayment = paymentRepository.findByIdAndStatus(id,PaymentStatus.CANCELLED);
+        if(cancelledPayment.isPresent()){
+            throw new IllegalStateException("Payment already Exist with given Status "+ PaymentStatus.CANCELLED);
+        }
+        if(isValidTransition(payment1.getStatus(),PaymentStatus.CANCELLED)){
+
+            Payment payment = payment1.toBuilder()
+                    .id(null)
+                    .status(PaymentStatus.CANCELLED)
+                    .transactionReference("TXN-" + UUID.randomUUID())
+                    .build();
+            paymentRepository.save(payment);
+
             return new ResponseDto(
                     HttpStatus.OK.toString(),
-                    PaymentStatus.CANCELLED
+                    PaymentStatus.CANCELLED.toString()
             );
         }
         else{
             throw new IllegalStateException(
                     "Invalid payment status transition from "
-                            + payment.getStatus() + " to " + PaymentStatus.CANCELLED
+                            + payment1.getStatus() + " to " + PaymentStatus.CANCELLED
             );
         }
     }

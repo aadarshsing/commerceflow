@@ -33,4 +33,7 @@ public interface PaymentRepository extends JpaRepository<Payment,Long> {
             AND pay.status = ?2
             """)
     Optional<Payment> findByOrderIdAndPaymentStatus(Long orderId, PaymentStatus status);
+
+    Optional<Payment> findByIdAndStatus(Long id,PaymentStatus status);
+
 }
