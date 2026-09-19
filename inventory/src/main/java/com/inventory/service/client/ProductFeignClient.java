@@ -1,6 +1,6 @@
 package com.inventory.service.client;
 
-import com.inventory.dto.ProductResponseDto;
+import com.inventory.dto.catalog.ProductResponseDto;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;

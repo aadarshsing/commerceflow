@@ -8,8 +8,9 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="eurekaServer" />
+        <module name="commerceflow-contracts" />
       </profile>
-      <profile name="Annotation profile for shipment" enabled="true">
+      <profile name="Annotation profile for order" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />

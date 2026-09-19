@@ -1,8 +1,8 @@
 package com.inventory.mapper;
 
 
-import com.inventory.dto.CreateInventoryDto;
-import com.inventory.dto.InventoryResponseDto;
+import com.inventory.dto.inventory.CreateInventoryDto;
+import com.inventory.dto.inventory.InventoryResponseDto;
 import com.inventory.enitity.Inventory;
 import com.inventory.enitity.enums.InventoryStatus;
 

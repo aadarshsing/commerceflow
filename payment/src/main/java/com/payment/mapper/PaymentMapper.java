@@ -1,10 +1,10 @@
 package com.payment.mapper;
 
 
-import com.payment.dto.CreatePaymentDto;
-import com.payment.dto.PaymentResponseDto;
+import com.payment.dto.payment.CreatePaymentDto;
+import com.payment.dto.payment.PaymentResponseDto;
 import com.payment.entity.Payment;
-import com.payment.entity.enums.PaymentStatus;
+import com.payment.entity.enums.payment.PaymentStatus;
 
 import java.util.UUID;
 
@@ -12,6 +12,8 @@ public class PaymentMapper {
 
 
     public static Payment createPaymentDtoToPaymentMapper(CreatePaymentDto paymentDto, Payment payment){
+        payment.setOrderId(paymentDto.orderId());
+        payment.setCustomerId(paymentDto.customerId());
         payment.setPaymentMethod(paymentDto.paymentMethod());
         payment.setStatus(PaymentStatus.SUCCESS);
         String transactionReference = "TXN-" + UUID.randomUUID();

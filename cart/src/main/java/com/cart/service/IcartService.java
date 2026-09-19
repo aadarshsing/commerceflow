@@ -1,9 +1,9 @@
 package com.cart.service;
 
 
-import com.cart.dto.CartResponseDto;
-import com.cart.dto.CreateCartDto;
-import com.cart.dto.ResponseDto;
+import com.cart.dto.cart.CartResponseDto;
+import com.cart.dto.cart.CreateCartDto;
+import com.cart.dto.cart.ResponseDto;
 
 public interface IcartService {
     /**

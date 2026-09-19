@@ -1,9 +1,9 @@
 package com.catalog.product.mapper;
 
 
-import com.catalog.product.dto.CreateProductRequestDto;
-import com.catalog.product.dto.ProductResponseDto;
-import com.catalog.product.dto.UpdateProductRequestDto;
+import com.catalog.product.dto.product.CreateProductRequestDto;
+import com.catalog.product.dto.product.ProductResponseDto;
+import com.catalog.product.dto.product.UpdateProductRequestDto;
 import com.catalog.product.entity.Product;
 import com.catalog.product.entity.enums.ProductStatus;
 

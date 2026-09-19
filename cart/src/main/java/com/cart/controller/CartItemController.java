@@ -1,10 +1,10 @@
 package com.cart.controller;
 
 
-import com.cart.dto.CartResponseDto;
-import com.cart.dto.CreateCartItemDto;
-import com.cart.dto.ResponseDto;
-import com.cart.dto.UpdateCartItemDto;
+import com.cart.dto.cart.CartResponseDto;
+import com.cart.dto.cart.CreateCartItemDto;
+import com.cart.dto.cart.ResponseDto;
+import com.cart.dto.cart.UpdateCartItemDto;
 import com.cart.service.ICartItemService;
 import com.cart.service.IcartService;
 import jakarta.validation.Valid;

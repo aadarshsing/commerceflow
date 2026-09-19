@@ -1,7 +1,7 @@
 package com.customer.service.implementation;
 
-import com.customer.dto.AddressResponseDto;
-import com.customer.dto.CreateAddressRequestDto;
+import com.customer.dto.address.AddressResponseDto;
+import com.customer.dto.address.CreateAddressRequestDto;
 import com.customer.entity.Address;
 import com.customer.entity.Customer;
 import com.customer.exception.ResourceNotFoundException;

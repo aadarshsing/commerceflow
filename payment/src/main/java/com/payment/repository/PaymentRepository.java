@@ -2,7 +2,7 @@ package com.payment.repository;
 
 
 import com.payment.entity.Payment;
-import com.payment.entity.enums.PaymentStatus;
+import com.payment.entity.enums.payment.PaymentStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

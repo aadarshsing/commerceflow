@@ -12,11 +12,12 @@ public  class ShippingAddress {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
+    @OneToOne
+    @JoinColumn(name = "shipment_id",nullable = false,unique = true)
+    Shipment shipment;
     @Column(nullable = false)
     private String addressLine1;
     private String addressLine2;
-
     @Column(nullable = false)
     private String city;
     @Column(nullable = false)

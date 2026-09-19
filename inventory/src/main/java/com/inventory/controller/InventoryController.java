@@ -2,10 +2,10 @@ package com.inventory.controller;
 
 
 
-import com.inventory.dto.CreateInventoryDto;
-import com.inventory.dto.InventoryResponseDto;
+import com.inventory.dto.inventory.CreateInventoryDto;
+import com.inventory.dto.inventory.InventoryResponseDto;
 import com.inventory.dto.ResponseDto;
-import com.inventory.dto.UpdateInventoryDto;
+import com.inventory.dto.inventory.UpdateInventoryDto;
 import com.inventory.service.IInventoryService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;

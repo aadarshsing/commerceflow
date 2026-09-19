@@ -1,10 +1,9 @@
 package com.catalog.product.service;
 
-import com.catalog.product.dto.CreateProductRequestDto;
-import com.catalog.product.dto.ProductResponseDto;
-import com.catalog.product.dto.UpdateProductRequestDto;
+import com.catalog.product.dto.product.CreateProductRequestDto;
+import com.catalog.product.dto.product.ProductResponseDto;
+import com.catalog.product.dto.product.UpdateProductRequestDto;
 import com.catalog.product.entity.enums.ProductStatus;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Slice;
 
 import java.math.BigDecimal;

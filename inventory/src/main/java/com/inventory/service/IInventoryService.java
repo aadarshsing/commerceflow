@@ -1,9 +1,9 @@
 package com.inventory.service;
 
 
-import com.inventory.dto.CreateInventoryDto;
-import com.inventory.dto.InventoryResponseDto;
-import com.inventory.dto.UpdateInventoryDto;
+import com.inventory.dto.inventory.CreateInventoryDto;
+import com.inventory.dto.inventory.InventoryResponseDto;
+import com.inventory.dto.inventory.UpdateInventoryDto;
 
 import java.util.List;
 

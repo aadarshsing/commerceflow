@@ -1,28 +1,33 @@
 package com.order.service.implementation;
 import com.order.dto.*;
-import com.order.dto.cart.CartCheckOutRequest;
+import com.order.dto.order.CartCheckOutRequest;
 import com.order.dto.cart.CartItemResponseDto;
 import com.order.dto.cart.CartResponseDto;
-import com.order.dto.inventory.UpdateInventoryDto;
 import com.order.dto.notification.CreateNotificationDto;
-import com.order.dto.notification.NotificationResponseDto;
-import com.order.dto.notification.UpdateNotificationDto;
 import com.order.dto.order.BuyNowRequest;
 import com.order.dto.order.OrderResponseDto;
 import com.order.dto.order.ResponseDto;
 import com.order.dto.payment.CreatePaymentDto;
+import com.order.dto.payment.PaymentResponseDto;
+import com.order.dto.shipment.CreateShipmentDto;
 import com.order.entity.Order;
 import com.order.entity.OrderAddress;
 import com.order.entity.OrderItem;
 import com.order.entity.enums.*;
+import com.order.entity.enums.cart.CartStatus;
+import com.order.entity.enums.notification.NotificationType;
+import com.order.entity.enums.payment.PaymentMethod;
+import com.order.entity.enums.payment.PaymentStatus;
 import com.order.exception.ResourceNotActiveException;
 import com.order.exception.ResourceNotFoundException;
+import com.order.mapper.AddressMapper;
 import com.order.mapper.OrderMapper;
 import com.order.repository.OrderRepository;
 import com.order.service.IOrderService;
 import com.order.service.client.*;
 import lombok.RequiredArgsConstructor;
-import org.aspectj.weaver.ast.Or;
+import org.commerceflow.dto.inventory.UpdateInventoryDto;
+import org.commerceflow.enums.inventory.InventoryOperation;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -33,6 +38,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 
@@ -47,6 +53,7 @@ public class OrderServiceImpl implements IOrderService {
     private final CatalogFeignClient catalogFeignClient;
     private final PaymentFeignClient paymentFeignClient;
     private final NotificationFeignClient notificationFeignClient;
+    private final ShipmentFeignClient shipmentFeignClient;
 
 
     @Override
@@ -103,39 +110,43 @@ public class OrderServiceImpl implements IOrderService {
         List<CartItemResponseDto> cartItemList = cart.getItems();
         BigDecimal totalAmount = BigDecimal.valueOf(0);
         List<OrderItem> orderItems = new ArrayList<>();
-        for(CartItemResponseDto cartItem : cartItemList) {
-            ProductResponseDto product = cartItem.getProductResponseDto();
+        try {
+            for(CartItemResponseDto cartItem : cartItemList) {
+                ProductResponseDto product = cartItem.getProductResponseDto();
 
-            if (product.status().equals(ProductStatus.INACTIVE)) {
-                throw new ResourceNotActiveException("Product", "productId", product.id().toString());
+                if (product.status().equals(ProductStatus.INACTIVE)) {
+                    throw new ResourceNotActiveException("Product", "productId", product.id().toString());
+                }
+
+                inventoryFeignClient.updateStock(
+                        product.id(),
+                        new UpdateInventoryDto(
+                                cartItem.getQuantity(),
+                                InventoryOperation.RESERVE
+                        )
+                );
+                OrderItem orderItem = OrderMapper.cartItemToOrderItemMapper(cartItem,new OrderItem(),product);
+                orderItems.add(orderItem);
+                orderItem.setOrder(order);
+                totalAmount = totalAmount.add(product.price().multiply(BigDecimal.valueOf(cartItem.getQuantity())));
             }
-
-            inventoryFeignClient.updateStock(
-                    product.id(),
-                    new UpdateInventoryDto(
-                            cartItem.getQuantity(),
-                            InventoryOperation.RESERVE
-                    )
-            );
-            OrderItem orderItem = OrderMapper.cartItemToOrderItemMapper(cartItem,new OrderItem(),product);
-            orderItems.add(orderItem);
-            orderItem.setOrder(order);
-            totalAmount = totalAmount.add(product.price().multiply(BigDecimal.valueOf(cartItem.getQuantity())));
+        } catch (ResourceNotActiveException e) {
+            throw new IllegalStateException("something happened wrong.Please try again");
         }
 
         order.setOrderItems(orderItems);
         order.setTotalAmount(totalAmount);
         orderRepository.save(order);
-        ResponseDto orderNotificationResponseDto = notificationFeignClient.createNotification(
+        notificationFeignClient.createNotification(
                 new CreateNotificationDto(
-                        order.getCustomerId(),
+                        cartCheckOutRequest.customerId(),
                         NotificationType.ORDER_CREATED,
                         "POP UP",
-                        "Order Creation",
+                        "Order",
                         "Order is Created Successfully",
                         order.getId().toString()
                 )
-        ).getBody();
+        );
 
 //         it will call payment then once payment is confirmed that order transition move to confirmed if payment failed
 //         then we will again release inventory product and make transition to order not created
@@ -147,7 +158,7 @@ public class OrderServiceImpl implements IOrderService {
                             PaymentMethod.UPI
                     )
             ).getBody();
-            ResponseDto paymentNotificationResponseDto = notificationFeignClient.createNotification(
+            notificationFeignClient.createNotification(
                     new CreateNotificationDto(
                             order.getCustomerId(),
                             NotificationType.PAYMENT_PENDING,
@@ -156,7 +167,7 @@ public class OrderServiceImpl implements IOrderService {
                             "Payment Pending",
                             order.getId().toString()
                     )
-            ).getBody();
+            );
 
             if (paymentResponseDto.statusMsg().equals(PaymentStatus.FAILED.toString())) {
                 for (int i = 1; i < 5; i++) {
@@ -175,7 +186,7 @@ public class OrderServiceImpl implements IOrderService {
 
                 notificationFeignClient.createNotification(
                         new CreateNotificationDto(
-                                order.getCustomerId(),
+                                cartCheckOutRequest.customerId(),
                                 NotificationType.PAYMENT_FAILED,
                                 "POP UP",
                                 "Payment",
@@ -199,7 +210,7 @@ public class OrderServiceImpl implements IOrderService {
             if(paymentResponseDto.statusMsg().equals(PaymentStatus.SUCCESS.toString())){
                 notificationFeignClient.createNotification(
                         new CreateNotificationDto(
-                                order.getCustomerId(),
+                                cartCheckOutRequest.customerId(),
                                 NotificationType.PAYMENT_SUCCESS,
                                 "POP UP",
                                 "Payment",
@@ -211,7 +222,7 @@ public class OrderServiceImpl implements IOrderService {
                 orderRepository.save(order);
                 notificationFeignClient.createNotification(
                         new CreateNotificationDto(
-                                order.getCustomerId(),
+                                cartCheckOutRequest.customerId(),
                                 NotificationType.ORDER_CONFIRMED,
                                 "POP UP",
                                 "Order",
@@ -219,10 +230,42 @@ public class OrderServiceImpl implements IOrderService {
                                 order.getId().toString()
                         )
                 );
+                ResponseDto responseDto = shipmentFeignClient.createShipment(
+                        new CreateShipmentDto(
+                                order.getId(),
+                                cartCheckOutRequest.customerId(),
+                                AddressMapper.orderAddressToAddressResponseDtoMapper(orderAddress)
+                        )
+                ).getBody();
+                if (responseDto == null) {
+                    throw new RuntimeException("Payment response is null");
+                }
+
+                if (HttpStatus.OK.toString().equals(responseDto.statusCode())) {
+                    notificationFeignClient.createNotification(
+                            new CreateNotificationDto(
+                                    cartCheckOutRequest.customerId(),
+                                    NotificationType.SHIPMENT_CREATED,
+                                    "POP UP",
+                                    "Order",
+                                    "Shipment Created Successfully",
+                                    order.getId().toString()
+                            )
+                    );
+                }
+                cartFeignClient.deleteCartItems(cart.getId());
+
             }
         } catch (Exception e) {
             order.setOrderStatus(OrderStatus.CANCELLED);
             orderRepository.save(order);
+            PaymentResponseDto paymentSuccessful = Objects.requireNonNull(paymentFeignClient.getPaymentByOrder(order.getId())
+                            .getBody())
+                    .stream()
+                    .filter(payment -> Objects.equals(payment.status().toString(), PaymentStatus.SUCCESS.toString())).findFirst().orElse(null);
+            if(paymentSuccessful!=null){
+                paymentFeignClient.createRefundPayment(paymentSuccessful.paymentId(),paymentSuccessful.orderId());
+            }
             notificationFeignClient.createNotification(
                     new CreateNotificationDto(
                             order.getCustomerId(),
@@ -249,15 +292,10 @@ public class OrderServiceImpl implements IOrderService {
                 );
             }
             throw new RuntimeException(
-                    "Unable to create Payment, order creation deleted and inventory is released ",
+                    "Unable to process order, order creation deleted and inventory is released and if money if deducted it will be refunded within 24 hours",
                     e
             );
         }
-        ResponseDto responseDto = cartFeignClient.deleteCartItems(cart.getId()).getBody();
-        if(!responseDto.statusCode().equals(HttpStatus.OK)){
-            //will use retries pattern after while implementing fault torlence
-        }
-//         we will remove items after begin dispatch or delivered
 
 
 
@@ -279,13 +317,17 @@ public class OrderServiceImpl implements IOrderService {
         if (product.status().equals(ProductStatus.INACTIVE)) {
             throw new ResourceNotActiveException("Product", "productId", buyNowRequest.productId().toString());
         }
-        inventoryFeignClient.updateStock(
-                product.id(),
-                new UpdateInventoryDto(
-                        buyNowRequest.quantity(),
-                        InventoryOperation.RESERVE
-                )
-        );
+        try {
+            inventoryFeignClient.updateStock(
+                    product.id(),
+                    new UpdateInventoryDto(
+                            buyNowRequest.quantity(),
+                            InventoryOperation.RESERVE
+                    )
+            );
+        } catch (Exception e) {
+            throw new IllegalStateException("Something happend wrong. Please try again");
+        }
         OrderAddress orderAddress = new OrderAddress();
         orderAddress.setOrder(order);
         order.setShippingAddress(OrderMapper.shippingAddressToOrderAddress(address,orderAddress));
@@ -293,6 +335,8 @@ public class OrderServiceImpl implements IOrderService {
         orderItem.setOrder(order);
         order.setTotalAmount(orderItem.getTotalPrice());
         order.setOrderItems(List.of(orderItem));
+        order.setCustomerId(buyNowRequest.customerId());
+        order.setOrderStatus(OrderStatus.CREATED);
         orderRepository.save(order);
 
         notificationFeignClient.createNotification(
@@ -321,20 +365,26 @@ public class OrderServiceImpl implements IOrderService {
                             NotificationType.PAYMENT_PENDING,
                             "POP UP",
                             "Payment",
-                            "Payment Failed",
+                            "Payment Pending",
                             order.getId().toString()
                     )
             );
-            if (paymentResponseDto.statusMsg().equals(PaymentStatus.FAILED)) {
+            if(paymentResponseDto == null){
+                throw  new RuntimeException("Payment ResponseDto is null");
+            }
+            if (paymentResponseDto.statusMsg().equals(PaymentStatus.FAILED.toString())) {
                 for (int i = 1; i < 6; i++) {
                     paymentResponseDto = paymentFeignClient.createPayment(new CreatePaymentDto(order.getId(), buyNowRequest.customerId(), PaymentMethod.UPI)).getBody();
-                    if(paymentResponseDto.statusMsg().equals(PaymentStatus.PENDING)
-                            || paymentResponseDto.statusMsg().equals(PaymentStatus.SUCCESS)
+                    if(paymentResponseDto == null){
+                        throw  new RuntimeException("Payment ResponseDto is null");
+                    }
+                    if(paymentResponseDto.statusMsg().equals(PaymentStatus.PENDING.toString())
+                            || paymentResponseDto.statusMsg().equals(PaymentStatus.SUCCESS.toString())
                     ) break;
 
                 }
             }
-            if(paymentResponseDto.statusMsg().equals(PaymentStatus.FAILED)){
+            if(paymentResponseDto.statusMsg().equals(PaymentStatus.FAILED.toString())){
                 notificationFeignClient.createNotification(
                         new CreateNotificationDto(
                                 order.getCustomerId(),
@@ -353,7 +403,7 @@ public class OrderServiceImpl implements IOrderService {
                         )
                 );
             }
-            if(paymentResponseDto.statusMsg().equals(PaymentStatus.SUCCESS)){
+            if(paymentResponseDto.statusMsg().equals(PaymentStatus.SUCCESS.toString())){
                 notificationFeignClient.createNotification(
                         new CreateNotificationDto(
                                 order.getCustomerId(),
@@ -376,9 +426,39 @@ public class OrderServiceImpl implements IOrderService {
                                 order.getId().toString()
                         )
                 );
+                ResponseDto responseDto = shipmentFeignClient.createShipment(
+                        new CreateShipmentDto(
+                                order.getId(),
+                                order.getCustomerId(),
+                                AddressMapper.orderAddressToAddressResponseDtoMapper(orderAddress)
+                        )
+                ).getBody();
+                if (responseDto == null) {
+                    throw new RuntimeException("Payment response is null");
+                }
+
+                if (HttpStatus.OK.toString().equals(responseDto.statusCode())) {
+                    notificationFeignClient.createNotification(
+                            new CreateNotificationDto(
+                                    buyNowRequest.customerId(),
+                                    NotificationType.SHIPMENT_CREATED,
+                                    "POP UP",
+                                    "Order",
+                                    "Shipment Created Successfully",
+                                    order.getId().toString()
+                            )
+                    );
+                }
             }
         }
         catch (Exception e){
+            PaymentResponseDto paymentSuccessful = Objects.requireNonNull(paymentFeignClient.getPaymentByOrder(order.getId())
+                            .getBody())
+                    .stream()
+                    .filter(payment -> payment.status() == PaymentStatus.SUCCESS).findFirst().orElse(null);
+            if(paymentSuccessful!=null){
+                paymentFeignClient.createRefundPayment(paymentSuccessful.paymentId(),paymentSuccessful.orderId());
+            }
             notificationFeignClient.createNotification(
                     new CreateNotificationDto(
                             order.getCustomerId(),
@@ -399,7 +479,7 @@ public class OrderServiceImpl implements IOrderService {
                     )
             );
             throw new RuntimeException(
-                    "Unable to create Payment, order creation deleted and inventory is released ",
+                    "Unable to create Payment, order creation deleted and inventory is released and Money Refunded ",
                     e
             );
         }
@@ -464,6 +544,29 @@ public class OrderServiceImpl implements IOrderService {
         order.setOrderStatus(orderStatus);
 
         orderRepository.save(order);
+    }
+    private void sendOrderNotification(Order order,OrderStatus orderStatus){
+        NotificationType notificationType = switch (orderStatus){
+
+            case CONFIRMED -> NotificationType.ORDER_CONFIRMED;
+            case PROCESSING -> NotificationType.ORDER_PROCESSING;
+            case SHIPPED -> NotificationType.ORDER_SHIPPED;
+            case DELIVERED -> NotificationType.ORDER_DELIVERED;
+            case CANCELLED -> NotificationType.ORDER_CANCELLED;
+
+            default -> null;
+
+        };
+        notificationFeignClient.createNotification(
+                new CreateNotificationDto(
+                        order.getCustomerId(),
+                        notificationType,
+                        "SMS",
+                        "Order",
+                        "Order state transition",
+                        order.getId().toString()
+                        )
+        );
     }
 
     @Override

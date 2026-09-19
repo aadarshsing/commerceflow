@@ -1,12 +1,9 @@
 package com.cart.mapper;
 
 
-import com.cart.dto.CartItemResponseDto;
-import com.cart.dto.CartResponseDto;
-import com.cart.dto.CreateCartDto;
-import com.cart.dto.ProductResponseDto;
+import com.cart.dto.cart.CartResponseDto;
+import com.cart.dto.cart.CreateCartDto;
 import com.cart.entity.Cart;
-import com.cart.entity.CartItem;
 import com.cart.entity.enums.CartStatus;
 
 import java.util.*;

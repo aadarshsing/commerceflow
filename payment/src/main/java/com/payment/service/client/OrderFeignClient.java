@@ -1,6 +1,6 @@
 package com.payment.service.client;
 
-import com.payment.dto.OrderResponseDto;
+import com.payment.dto.order.OrderResponseDto;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;

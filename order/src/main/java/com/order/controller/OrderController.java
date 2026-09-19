@@ -2,7 +2,7 @@ package com.order.controller;
 
 
 import com.order.dto.order.BuyNowRequest;
-import com.order.dto.cart.CartCheckOutRequest;
+import com.order.dto.order.CartCheckOutRequest;
 import com.order.dto.order.OrderResponseDto;
 import com.order.dto.order.ResponseDto;
 import com.order.entity.enums.OrderStatus;

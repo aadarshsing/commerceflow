@@ -1,18 +1,20 @@
 package com.payment.service.implementation;
 
-import com.payment.dto.CreatePaymentDto;
-import com.payment.dto.OrderResponseDto;
-import com.payment.dto.PaymentResponseDto;
-import com.payment.dto.ResponseDto;
+import com.payment.dto.notification.CreateNotificationDto;
+import com.payment.dto.payment.CreatePaymentDto;
+import com.payment.dto.order.OrderResponseDto;
+import com.payment.dto.payment.PaymentResponseDto;
+import com.payment.dto.payment.ResponseDto;
 import com.payment.entity.Payment;
-import com.payment.entity.enums.OrderStatus;
-import com.payment.entity.enums.PaymentMethod;
-import com.payment.entity.enums.PaymentStatus;
-import com.payment.exception.DuplicateResourceException;
+import com.payment.entity.enums.notification.NotificationType;
+import com.payment.entity.enums.order.OrderStatus;
+import com.payment.entity.enums.payment.PaymentMethod;
+import com.payment.entity.enums.payment.PaymentStatus;
 import com.payment.exception.ResourceNotFoundException;
 import com.payment.mapper.PaymentMapper;
 import com.payment.repository.PaymentRepository;
 import com.payment.service.IPaymentService;
+import com.payment.service.client.NotificationFeignClient;
 import com.payment.service.client.OrderFeignClient;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -31,6 +33,7 @@ public class PaymentServiceImpl implements IPaymentService {
 
     PaymentRepository paymentRepository;
     OrderFeignClient orderFeignClient;
+    NotificationFeignClient notificationFeignClient;
     @Override
     public ResponseDto createPayment(CreatePaymentDto createPaymentDto) {
 
@@ -52,6 +55,39 @@ public class PaymentServiceImpl implements IPaymentService {
                 PaymentStatus.SUCCESS
         );
 
+    }
+
+    @Override
+    public ResponseDto createRefundPayment(Long paymentId, Long orderId) {
+
+        Optional<Payment> payment1 = paymentRepository.findByOrderIdAndPaymentStatus(orderId, PaymentStatus.SUCCESS);
+        if (payment1.isEmpty()){
+            throw new IllegalStateException("Payment is not Successes with given payment Id "+payment1.get().getId());
+        }
+        Payment payment = PaymentMapper.createPaymentDtoToPaymentMapper(
+                new CreatePaymentDto(
+                        orderId,
+                        payment1.get().getCustomerId(),
+                        payment1.get().getPaymentMethod()
+                )
+                ,new Payment());
+        payment.setAmount(payment1.get().getAmount());
+        payment.setStatus(PaymentStatus.REFUNDED);
+        paymentRepository.save(payment);
+        notificationFeignClient.createNotification(
+                new CreateNotificationDto(
+                       payment.getCustomerId(),
+                        NotificationType.PAYMENT_REFUND,
+                        "SMS",
+                        "Payment",
+                        "Payment is Refunded to original Payment Account",
+                        paymentId.toString()
+                )
+        );
+        return  new ResponseDto(
+                HttpStatus.CREATED.toString(),
+                PaymentStatus.REFUNDED
+        );
     }
 
     @Override

@@ -1,7 +1,7 @@
 package com.order.dto;
 
 
-import com.order.entity.enums.AddressType;
+import com.order.entity.enums.customer.AddressType;
 
 public record AddressResponseDto(
         Long customerId,

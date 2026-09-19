@@ -1,7 +1,7 @@
 package com.catalog.exception;
 
 
-import com.catalog.entity.dto.ErrorResponseDto;
+import com.catalog.dto.ErrorResponseDto;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

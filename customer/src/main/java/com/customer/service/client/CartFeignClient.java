@@ -1,6 +1,6 @@
 package com.customer.service.client;
 
-import com.customer.dto.CreateCartDto;
+import com.customer.dto.cart.CreateCartDto;
 import com.customer.dto.ResponseDto;
 import jakarta.validation.Valid;
 import org.springframework.cloud.openfeign.FeignClient;

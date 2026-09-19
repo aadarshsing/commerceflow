@@ -19,7 +19,6 @@ public class ShipmentMapper {
         shipment.setTrackingNumber(generateTrackingNumber());
         shipment.setCarrier("ShipRocket");
         shipment.setStatus(ShipmentStatus.CREATED);
-        shipment.setShippingAddress(orderAddressToShippingAddressMapper(new ShippingAddress(),createShipmentDto.shippingAddress()));
         shipment.setEstimatedDeliveryDate(
                 Instant.now().plus(15, ChronoUnit.DAYS)
         );

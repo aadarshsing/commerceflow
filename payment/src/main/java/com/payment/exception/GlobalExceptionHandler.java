@@ -1,7 +1,7 @@
 package com.payment.exception;
 
 
-import com.payment.dto.ErrorResponseDto;
+import com.payment.dto.payment.ErrorResponseDto;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

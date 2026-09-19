@@ -1,9 +1,9 @@
 package com.inventory.service.implementation;
 
-import com.inventory.dto.CreateInventoryDto;
-import com.inventory.dto.InventoryResponseDto;
-import com.inventory.dto.ProductResponseDto;
-import com.inventory.dto.UpdateInventoryDto;
+import com.inventory.dto.inventory.CreateInventoryDto;
+import com.inventory.dto.inventory.InventoryResponseDto;
+import com.inventory.dto.catalog.ProductResponseDto;
+import com.inventory.dto.inventory.UpdateInventoryDto;
 import com.inventory.enitity.Inventory;
 import com.inventory.enitity.enums.InventoryOperation;
 import com.inventory.enitity.enums.ProductStatus;

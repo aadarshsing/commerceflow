@@ -6,6 +6,7 @@ import com.shipment.dto.order.OrderAddressResponseDto;
 import com.shipment.dto.shipment.ResponseDto;
 import com.shipment.dto.shipment.ShipmentResponseDto;
 import com.shipment.entity.Shipment;
+import com.shipment.entity.ShippingAddress;
 import com.shipment.entity.enums.NotificationType;
 import com.shipment.entity.enums.ShipmentStatus;
 import com.shipment.exception.ResourceNotFoundException;
@@ -32,7 +33,7 @@ public class ShipmentServiceImpl implements IshipmentService {
     ShipmentRepository shipmentRepository;
 
     @Override
-    public ResponseDto createShipment(CreateShipmentDto createShipmentDto, OrderAddressResponseDto orderAddressResponseDto) {
+    public ResponseDto createShipment(CreateShipmentDto createShipmentDto) {
         Boolean isExist = customerFeignClient.checkCustomerExist(createShipmentDto.customerId()).getBody();
         if(Boolean.FALSE.equals(isExist)){
             throw new ResourceNotFoundException("Customer","customerId",createShipmentDto.customerId().toString());
@@ -42,18 +43,11 @@ public class ShipmentServiceImpl implements IshipmentService {
             throw new ResourceNotFoundException("Order","orderId",createShipmentDto.orderId().toString());
         }
         Shipment shipment = ShipmentMapper.createShipmentDtoToShipmentMapper(new Shipment(),createShipmentDto);
-        shipmentRepository.save(shipment);
-        notificationFeignClient.createNotification(
-                new CreateNotificationDto(
-                        createShipmentDto.customerId(),
-                        NotificationType.SHIPMENT_CREATED,
-                        "SMS",
-                        "Shipment",
-                        "Shipment Created Successfully",
-                        shipment.getId().toString()
+        ShippingAddress shippingAddress = ShipmentMapper.orderAddressToShippingAddressMapper(new ShippingAddress(),createShipmentDto.shippingAddress());
+        shippingAddress.setShipment(shipment);
 
-                )
-        );
+        shipment.setShippingAddress(shippingAddress);
+        shipmentRepository.save(shipment);
         return new ResponseDto(
                 HttpStatus.CREATED.toString(),
                 shipment.getId().toString()
@@ -250,7 +244,7 @@ public class ShipmentServiceImpl implements IshipmentService {
             default -> null;
         };
 
-        if (message == null) {
+        if (message == null || notificationType == null) {
             return;
         }
 

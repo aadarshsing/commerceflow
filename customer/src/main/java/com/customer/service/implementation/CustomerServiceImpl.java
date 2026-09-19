@@ -1,9 +1,9 @@
 package com.customer.service.implementation;
 
-import com.customer.dto.CreateCartDto;
-import com.customer.dto.CreateCustomerRequest;
-import com.customer.dto.CustomerResponseDto;
-import com.customer.dto.UpdateCustomerDto;
+import com.customer.dto.cart.CreateCartDto;
+import com.customer.dto.customer.CreateCustomerRequest;
+import com.customer.dto.customer.CustomerResponseDto;
+import com.customer.dto.customer.UpdateCustomerDto;
 import com.customer.entity.Customer;
 import com.customer.exception.CustomerAlreadyExistException;
 import com.customer.exception.DuplicateResourceException;
@@ -14,7 +14,6 @@ import com.customer.service.IcustomerService;
 import com.customer.service.client.CartFeignClient;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
 import java.util.Optional;

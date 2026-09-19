@@ -1,8 +1,8 @@
 package com.customer.mapper;
 
 
-import com.customer.dto.AddressResponseDto;
-import com.customer.dto.CreateAddressRequestDto;
+import com.customer.dto.address.AddressResponseDto;
+import com.customer.dto.address.CreateAddressRequestDto;
 import com.customer.entity.Address;
 
 public class AddressMapper {

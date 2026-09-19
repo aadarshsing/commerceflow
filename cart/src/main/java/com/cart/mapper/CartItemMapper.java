@@ -1,10 +1,9 @@
 package com.cart.mapper;
 
 
-import com.cart.dto.CartItemResponseDto;
-import com.cart.dto.CreateCartItemDto;
-import com.cart.dto.ProductResponseDto;
-import com.cart.dto.UpdateCartItemDto;
+import com.cart.dto.cart.CartItemResponseDto;
+import com.cart.dto.cart.CreateCartItemDto;
+import com.cart.dto.cart.UpdateCartItemDto;
 import com.cart.entity.CartItem;
 
 public class CartItemMapper {

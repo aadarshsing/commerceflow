@@ -1,6 +1,6 @@
 package com.order.dto.cart;
 
-import com.order.entity.enums.CartStatus;
+import com.order.entity.enums.cart.CartStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

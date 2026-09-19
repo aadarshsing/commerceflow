@@ -1,3 +1,23 @@
 spring:
   application:
     name: shipment
+  datasource:
+    url: jdbc:mysql://localhost:3308/shipmentDb
+    username: root
+    password: shipment
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  sql:
+    init:
+      mode: always
+eureka:
+  instance:
+    preferIpAddress: true
+  client:
+    fetchRegistry: true
+    registerWithEureka: true
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/

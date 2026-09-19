@@ -31,6 +31,11 @@
 		<spring-cloud.version>2025.1.3</spring-cloud.version>
 	</properties>
 	<dependencies>
+        <dependency>
+            <groupId>org.commerceflow</groupId>
+            <artifactId>commerceflow-contracts</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>

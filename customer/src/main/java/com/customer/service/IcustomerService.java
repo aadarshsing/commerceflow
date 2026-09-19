@@ -1,9 +1,9 @@
 package com.customer.service;
 
 
-import com.customer.dto.CreateCustomerRequest;
-import com.customer.dto.CustomerResponseDto;
-import com.customer.dto.UpdateCustomerDto;
+import com.customer.dto.customer.CreateCustomerRequest;
+import com.customer.dto.customer.CustomerResponseDto;
+import com.customer.dto.customer.UpdateCustomerDto;
 
 public interface IcustomerService {
     /**

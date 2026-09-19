@@ -1,12 +1,9 @@
 package com.order.service.client;
-
-
-
-import com.order.dto.inventory.InventoryResponseDto;
-import com.order.dto.inventory.UpdateInventoryDto;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import org.commerceflow.dto.inventory.InventoryResponseDto;
+import org.commerceflow.dto.inventory.UpdateInventoryDto;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;

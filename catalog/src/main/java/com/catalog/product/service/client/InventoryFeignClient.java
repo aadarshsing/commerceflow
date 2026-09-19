@@ -1,8 +1,8 @@
 package com.catalog.product.service.client;
 
 
-import com.catalog.product.dto.CreateInventoryDto;
-import com.catalog.product.dto.ResponseDto;
+import com.catalog.product.dto.inventory.CreateInventoryDto;
+import com.catalog.product.dto.product.ResponseDto;
 import jakarta.validation.Valid;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;

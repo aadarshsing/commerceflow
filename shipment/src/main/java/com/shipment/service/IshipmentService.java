@@ -1,7 +1,6 @@
 package com.shipment.service;
 
 import com.shipment.dto.shipment.CreateShipmentDto;
-import com.shipment.dto.order.OrderAddressResponseDto;
 import com.shipment.dto.shipment.ResponseDto;
 import com.shipment.dto.shipment.ShipmentResponseDto;
 import com.shipment.entity.enums.ShipmentStatus;
@@ -12,10 +11,9 @@ public interface IshipmentService {
     /**
      *
      * @param createShipmentDto
-     * @param orderAddressResponseDto
      * @return
      */
-    ResponseDto createShipment(CreateShipmentDto createShipmentDto, OrderAddressResponseDto orderAddressResponseDto);
+    ResponseDto createShipment(CreateShipmentDto createShipmentDto);
 
     /**
      *

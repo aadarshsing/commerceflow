@@ -1,6 +1,6 @@
 package com.order.dto.notification;
 
-import com.order.entity.enums.NotificationType;
+import com.order.entity.enums.notification.NotificationType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 

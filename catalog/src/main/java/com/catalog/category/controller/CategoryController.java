@@ -5,7 +5,7 @@ import com.catalog.category.dto.CategoryResponseDto;
 import com.catalog.category.dto.CreateCategoryRequestDto;
 import com.catalog.category.dto.UpdateCategoryRequest;
 import com.catalog.category.service.IcategoryService;
-import com.catalog.product.dto.ResponseDto;
+import com.catalog.product.dto.product.ResponseDto;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;

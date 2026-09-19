@@ -1,8 +1,8 @@
 package com.payment.entity;
 
 
-import com.payment.entity.enums.PaymentMethod;
-import com.payment.entity.enums.PaymentStatus;
+import com.payment.entity.enums.payment.PaymentMethod;
+import com.payment.entity.enums.payment.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

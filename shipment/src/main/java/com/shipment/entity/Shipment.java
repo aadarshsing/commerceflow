@@ -33,11 +33,7 @@ public class Shipment {
     private String carrier;
     @Enumerated(EnumType.STRING)
     private ShipmentStatus status;
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(
-            name = "shipping_address_id",
-            nullable = false
-    )
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private ShippingAddress shippingAddress;
     private Instant estimatedDeliveryDate;
     private Instant shippedAt;

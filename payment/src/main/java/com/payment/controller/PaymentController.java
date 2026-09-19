@@ -1,11 +1,11 @@
 package com.payment.controller;
 
 
-import com.payment.dto.CreatePaymentDto;
-import com.payment.dto.PaymentResponseDto;
-import com.payment.dto.ResponseDto;
-import com.payment.entity.enums.PaymentMethod;
-import com.payment.entity.enums.PaymentStatus;
+import com.payment.dto.payment.CreatePaymentDto;
+import com.payment.dto.payment.PaymentResponseDto;
+import com.payment.dto.payment.ResponseDto;
+import com.payment.entity.enums.payment.PaymentMethod;
+import com.payment.entity.enums.payment.PaymentStatus;
 import com.payment.service.IPaymentService;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +31,12 @@ public class PaymentController {
     ResponseEntity<ResponseDto> createPayment(@RequestBody CreatePaymentDto createPaymentDto){
 
         ResponseDto responseDto = paymentService.createPayment(createPaymentDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
+    }
+    @PostMapping("/payments/{paymentId}/{orderId}/refund")
+    ResponseEntity<ResponseDto> createRefundPayment(@PathVariable Long paymentId,@PathVariable Long orderId){
+
+        ResponseDto responseDto = paymentService.createRefundPayment(paymentId,orderId);
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
     }
 

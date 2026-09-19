@@ -1,8 +1,8 @@
 package com.shipment.dto.notification;
 
 
-import com.order.entity.enums.NotificationStatus;
-import com.order.entity.enums.NotificationType;
+import com.shipment.entity.enums.NotificationStatus;
+import com.shipment.entity.enums.NotificationType;
 
 public record UpdateNotificationDto(
         NotificationType notificationType,

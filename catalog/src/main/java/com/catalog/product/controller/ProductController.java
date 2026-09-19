@@ -1,19 +1,15 @@
 package com.catalog.product.controller;
 
-import com.catalog.product.dto.CreateProductRequestDto;
-import com.catalog.product.dto.ProductResponseDto;
-import com.catalog.product.dto.ResponseDto;
-import com.catalog.product.dto.UpdateProductRequestDto;
+import com.catalog.product.dto.product.CreateProductRequestDto;
+import com.catalog.product.dto.product.ProductResponseDto;
+import com.catalog.product.dto.product.ResponseDto;
+import com.catalog.product.dto.product.UpdateProductRequestDto;
 import com.catalog.product.entity.enums.ProductStatus;
 import com.catalog.product.service.IproductService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;

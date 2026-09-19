@@ -1,6 +1,6 @@
 package com.order.dto.payment;
 
-import com.order.entity.enums.PaymentMethod;
+import com.order.entity.enums.payment.PaymentMethod;
 import jakarta.validation.constraints.NotNull;
 
 public record CreatePaymentDto(

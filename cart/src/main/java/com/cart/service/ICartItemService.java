@@ -1,9 +1,9 @@
 package com.cart.service;
 
 
-import com.cart.dto.CartResponseDto;
-import com.cart.dto.CreateCartItemDto;
-import com.cart.dto.UpdateCartItemDto;
+import com.cart.dto.cart.CartResponseDto;
+import com.cart.dto.cart.CreateCartItemDto;
+import com.cart.dto.cart.UpdateCartItemDto;
 
 import java.util.List;
 
