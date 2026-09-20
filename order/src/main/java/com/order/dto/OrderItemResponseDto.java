@@ -1,4 +1,4 @@
-package com.order.dto.order;
+package com.order.dto;
 
 import java.math.BigDecimal;
 

@@ -1,9 +1,9 @@
 package com.order.service.implementation;
 
-import com.order.dto.order.CartCheckOutRequest;
-import com.order.dto.order.BuyNowRequest;
-import com.order.dto.order.OrderResponseDto;
-import com.order.dto.order.ResponseDto;
+import com.order.dto.CartCheckOutRequest;
+import com.order.dto.BuyNowRequest;
+import com.order.dto.OrderResponseDto;
+import com.order.dto.ResponseDto;
 import com.order.entity.Order;
 import com.order.entity.OrderAddress;
 import com.order.entity.OrderItem;
@@ -153,13 +153,6 @@ public class OrderServiceImpl implements IOrderService {
 //         it will call payment then once payment is confirmed that order transition move to confirmed if payment failed
 //         then we will again release inventory product and make transition to order not created
         try {
-            ResponseDto paymentResponseDto = paymentFeignClient.createPayment(
-                    new CreatePaymentDto(
-                            order.getId(),
-                            cartCheckOutRequest.customerId(),
-                            PaymentMethod.UPI
-                    )
-            ).getBody();
             notificationFeignClient.createNotification(
                     new CreateNotificationDto(
                             order.getCustomerId(),
@@ -170,6 +163,14 @@ public class OrderServiceImpl implements IOrderService {
                             order.getId().toString()
                     )
             );
+
+            ResponseDto paymentResponseDto = paymentFeignClient.createPayment(
+                    new CreatePaymentDto(
+                            order.getId(),
+                            cartCheckOutRequest.customerId(),
+                            PaymentMethod.UPI
+                    )
+            ).getBody();
 
             if (paymentResponseDto.statusMsg().equals(PaymentStatus.FAILED.toString())) {
                 for (int i = 1; i < 5; i++) {
@@ -186,16 +187,6 @@ public class OrderServiceImpl implements IOrderService {
             }
             if(paymentResponseDto.statusMsg().equals(PaymentStatus.FAILED.toString())){
 
-                notificationFeignClient.createNotification(
-                        new CreateNotificationDto(
-                                cartCheckOutRequest.customerId(),
-                                NotificationType.PAYMENT_FAILED,
-                                "POP UP",
-                                "Payment",
-                                "Payment failed",
-                                order.getId().toString()
-                        )
-                );
                 for(CartItemResponseDto cartItem:cartItemList){
                     ProductResponseDto product = cartItem.getProductResponseDto();
 
@@ -210,16 +201,7 @@ public class OrderServiceImpl implements IOrderService {
 
             }
             if(paymentResponseDto.statusMsg().equals(PaymentStatus.SUCCESS.toString())){
-                notificationFeignClient.createNotification(
-                        new CreateNotificationDto(
-                                cartCheckOutRequest.customerId(),
-                                NotificationType.PAYMENT_SUCCESS,
-                                "POP UP",
-                                "Payment",
-                                "Payment Success",
-                                order.getId().toString()
-                        )
-                );
+
                 order.setOrderStatus(OrderStatus.CONFIRMED);
                 orderRepository.save(order);
                 notificationFeignClient.createNotification(
@@ -244,18 +226,12 @@ public class OrderServiceImpl implements IOrderService {
                 }
 
                 if (HttpStatus.CREATED.toString().equals(responseDto.statusCode())) {
-                    notificationFeignClient.createNotification(
-                            new CreateNotificationDto(
-                                    cartCheckOutRequest.customerId(),
-                                    NotificationType.SHIPMENT_CREATED,
-                                    "POP UP",
-                                    "Order",
-                                    "Shipment Created Successfully",
-                                    order.getId().toString()
-                            )
-                    );
+                    cartFeignClient.deleteCartItems(cart.getId());
                 }
-                cartFeignClient.deleteCartItems(cart.getId());
+                else{
+                    throw new RuntimeException("Shipment cannot be created");
+                }
+
 
             }
         } catch (Exception e) {
@@ -354,13 +330,6 @@ public class OrderServiceImpl implements IOrderService {
         // it will call payment then once payment is confirmed that order transition move to confirmed if payment failed
         // then we will again release inventory product and make transition to order not created
         try{
-            ResponseDto paymentResponseDto = paymentFeignClient.createPayment(
-                    new CreatePaymentDto(
-                            order.getId(),
-                            buyNowRequest.customerId(),
-                            PaymentMethod.UPI
-                    )
-            ).getBody();
             notificationFeignClient.createNotification(
                     new CreateNotificationDto(
                             order.getCustomerId(),
@@ -371,6 +340,13 @@ public class OrderServiceImpl implements IOrderService {
                             order.getId().toString()
                     )
             );
+            ResponseDto paymentResponseDto = paymentFeignClient.createPayment(
+                    new CreatePaymentDto(
+                            order.getId(),
+                            buyNowRequest.customerId(),
+                            PaymentMethod.UPI
+                    )
+            ).getBody();
             if(paymentResponseDto == null){
                 throw  new RuntimeException("Payment ResponseDto is null");
             }
@@ -387,16 +363,6 @@ public class OrderServiceImpl implements IOrderService {
                 }
             }
             if(paymentResponseDto.statusMsg().equals(PaymentStatus.FAILED.toString())){
-                notificationFeignClient.createNotification(
-                        new CreateNotificationDto(
-                                order.getCustomerId(),
-                                NotificationType.PAYMENT_FAILED,
-                                "POP UP",
-                                "Payment",
-                                "Payment Failed",
-                                order.getId().toString()
-                        )
-                );
                 inventoryFeignClient.updateStock(
                         product.id(),
                         new UpdateInventoryDto(
@@ -406,16 +372,7 @@ public class OrderServiceImpl implements IOrderService {
                 );
             }
             if(paymentResponseDto.statusMsg().equals(PaymentStatus.SUCCESS.toString())){
-                notificationFeignClient.createNotification(
-                        new CreateNotificationDto(
-                                order.getCustomerId(),
-                                NotificationType.PAYMENT_SUCCESS,
-                                "POP UP",
-                                "Payment",
-                                "Payment Success",
-                                order.getId().toString()
-                        )
-                );
+
                 order.setOrderStatus(OrderStatus.CONFIRMED);
                 orderRepository.save(order);
                 notificationFeignClient.createNotification(
@@ -436,20 +393,7 @@ public class OrderServiceImpl implements IOrderService {
                         )
                 ).getBody();
                 if (responseDto == null) {
-                    throw new RuntimeException("Payment response is null");
-                }
-
-                if (HttpStatus.CREATED.toString().equals(responseDto.statusCode())) {
-                    notificationFeignClient.createNotification(
-                            new CreateNotificationDto(
-                                    buyNowRequest.customerId(),
-                                    NotificationType.SHIPMENT_CREATED,
-                                    "POP UP",
-                                    "Order",
-                                    "Shipment Created Successfully",
-                                    order.getId().toString()
-                            )
-                    );
+                    throw new RuntimeException("Shipment does not created ");
                 }
             }
         }

@@ -13,6 +13,7 @@ import com.payment.service.IPaymentService;
 import com.payment.service.client.NotificationFeignClient;
 import com.payment.service.client.OrderFeignClient;
 import lombok.AllArgsConstructor;
+import org.aspectj.weaver.ast.Not;
 import org.commerceflow.dto.notification.CreateNotificationDto;
 import org.commerceflow.dto.order.OrderResponseDto;
 import org.commerceflow.enums.notification.NotificationType;
@@ -38,32 +39,72 @@ public class PaymentServiceImpl implements IPaymentService {
     @Override
     public ResponseDto createPayment(CreatePaymentDto createPaymentDto) {
 
-        OrderResponseDto orderResponseDto = orderFeignClient.getOrder(createPaymentDto.orderId()).getBody();
-        if(!(OrderStatus.CREATED).equals(orderResponseDto.orderStatus())){
-            throw new IllegalStateException("Order status is not valid as it is "+ orderResponseDto.orderStatus());
+        try {
+            OrderResponseDto orderResponseDto = orderFeignClient.getOrder(createPaymentDto.orderId()).getBody();
+            if(!(OrderStatus.CREATED).equals(orderResponseDto.orderStatus())){
+                throw new IllegalStateException("Order status is not valid as it is "+ orderResponseDto.orderStatus());
+            }
+            if(!orderResponseDto.customerId().equals(createPaymentDto.customerId())){
+                throw new IllegalArgumentException("Order is not associated with given Customer "+createPaymentDto.customerId());
+            }
+            Optional<Payment> payment1 = paymentRepository.findByOrderIdAndPaymentStatus(createPaymentDto.orderId(), PaymentStatus.SUCCESS);
+            if (payment1.isPresent()){
+                throw new IllegalStateException("Payment already succeed find payment by id "+payment1.get().getId());
+            }
+            Payment payment = PaymentMapper.createPaymentDtoToPaymentMapper(createPaymentDto,new Payment());
+            payment.setAmount(orderResponseDto.totalAmount());
+            payment.setOrderId(orderResponseDto.id());
+            payment.setCustomerId(orderResponseDto.customerId());
+            paymentRepository.save(payment);
+            notificationFeignClient.createNotification(
+                    new CreateNotificationDto(
+                            createPaymentDto.customerId(),
+                            NotificationType.PAYMENT_SUCCESS,
+                            "SMS",
+                            "Order",
+                            "Payment is Success",
+                            createPaymentDto.orderId().toString()
+                    )
+            );
+        } catch (IllegalStateException e) {
+            notificationFeignClient.createNotification(
+                    new CreateNotificationDto(
+                            createPaymentDto.customerId(),
+                            NotificationType.PAYMENT_FAILED,
+                            "SMS",
+                            "Order",
+                            "Payment Failed because" + e,
+                            createPaymentDto.orderId().toString()
+                    )
+            );
+            throw new RuntimeException("Payment cannot created");
+        } catch (IllegalArgumentException e) {
+            notificationFeignClient.createNotification(
+                    new CreateNotificationDto(
+                            createPaymentDto.customerId(),
+                            NotificationType.PAYMENT_FAILED,
+                            "SMS",
+                            "Order",
+                            "Payment Failed because" + e,
+                            createPaymentDto.orderId().toString()
+                    )
+            );
+            throw new RuntimeException("Payment cannot created");
         }
-        if(!orderResponseDto.customerId().equals(createPaymentDto.customerId())){
-            throw new IllegalArgumentException("Order is not associated with given Customer "+createPaymentDto.customerId());
+        catch (Exception e){
+            notificationFeignClient.createNotification(
+                    new CreateNotificationDto(
+                            createPaymentDto.customerId(),
+                            NotificationType.PAYMENT_FAILED,
+                            "SMS",
+                            "Order",
+                            "Payment Failed because" + e,
+                            createPaymentDto.orderId().toString()
+                    )
+            );
+            throw new RuntimeException("Payment cannot created");
+
         }
-        Optional<Payment> payment1 = paymentRepository.findByOrderIdAndPaymentStatus(createPaymentDto.orderId(), PaymentStatus.SUCCESS);
-        if (payment1.isPresent()){
-            throw new IllegalStateException("Payment already succeed find payment by id "+payment1.get().getId());
-        }
-        Payment payment = PaymentMapper.createPaymentDtoToPaymentMapper(createPaymentDto,new Payment());
-        payment.setAmount(orderResponseDto.totalAmount());
-        payment.setOrderId(orderResponseDto.id());
-        payment.setCustomerId(orderResponseDto.customerId());
-        paymentRepository.save(payment);
-        notificationFeignClient.createNotification(
-                new CreateNotificationDto(
-                        createPaymentDto.customerId(),
-                        NotificationType.PAYMENT_SUCCESS,
-                        "SMS",
-                        "Order",
-                        "Payment is Success",
-                        createPaymentDto.orderId().toString()
-                )
-        );
         return  new ResponseDto(
                 HttpStatus.CREATED.toString(),
                 PaymentStatus.SUCCESS.toString()
@@ -174,16 +215,24 @@ public class PaymentServiceImpl implements IPaymentService {
                     .transactionReference("TXN-" + UUID.randomUUID())
                     .build();
             paymentRepository.save(payment);
-//            notificationFeignClient.createNotification(
-//                    new CreateNotificationDto(
-//                            payment1.getCustomerId(),
-//                            NotificationType.,
-//                            "SMS",
-//                            "Order",
-//                            "Payment is Success",
-//                            payment1.getOrderId().toString()
-//                    )
-//            );
+            NotificationType notificationType = switch (status){
+                case SUCCESS -> NotificationType.PAYMENT_SUCCESS;
+                case PENDING -> NotificationType.PAYMENT_PENDING;
+                case FAILED -> NotificationType.PAYMENT_FAILED;
+                case REFUNDED -> NotificationType.PAYMENT_REFUND;
+                case CANCELLED -> NotificationType.PAYMENT_CANCELLED;
+
+            };
+            notificationFeignClient.createNotification(
+                    new CreateNotificationDto(
+                            payment1.getCustomerId(),
+                            notificationType,
+                            "SMS",
+                            "Order",
+                            "Payment is Success",
+                            payment1.getOrderId().toString()
+                    )
+            );
 
             return new ResponseDto(
                     HttpStatus.OK.toString(),
@@ -217,6 +266,17 @@ public class PaymentServiceImpl implements IPaymentService {
                     .transactionReference("TXN-" + UUID.randomUUID())
                     .build();
             paymentRepository.save(payment);
+
+            notificationFeignClient.createNotification(
+                    new CreateNotificationDto(
+                            payment1.getCustomerId(),
+                            NotificationType.PAYMENT_CANCELLED,
+                            "SMS",
+                            "Order",
+                            "Payment is Success",
+                            payment1.getOrderId().toString()
+                    )
+            );
 
             return new ResponseDto(
                     HttpStatus.OK.toString(),
@@ -254,7 +314,6 @@ public class PaymentServiceImpl implements IPaymentService {
 
         } else if (currentStatus == PaymentStatus.FAILED) {
 
-            // Failed payment can be retried
             if (status == PaymentStatus.PENDING) {
                 return true;
             }
@@ -263,12 +322,11 @@ public class PaymentServiceImpl implements IPaymentService {
 
         } else if (currentStatus == PaymentStatus.CANCELLED) {
 
-            // Cancelled is a final state
+
             return false;
 
         } else if (currentStatus == PaymentStatus.REFUNDED) {
 
-            // Refunded is a final state
             return false;
         }
 

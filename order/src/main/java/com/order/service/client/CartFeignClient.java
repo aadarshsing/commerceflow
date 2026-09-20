@@ -1,6 +1,6 @@
 package com.order.service.client;
 
-import com.order.dto.order.ResponseDto;
+import com.order.dto.ResponseDto;
 import jakarta.validation.constraints.NotNull;
 import org.commerceflow.dto.cart.CartResponseDto;
 import org.springframework.cloud.openfeign.FeignClient;

@@ -10,7 +10,7 @@
         <module name="eurekaServer" />
         <module name="commerceflow-contracts" />
       </profile>
-      <profile name="Annotation profile for payment" enabled="true">
+      <profile name="Annotation profile for shipment" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />

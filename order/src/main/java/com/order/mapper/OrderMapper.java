@@ -1,8 +1,8 @@
 package com.order.mapper;
 
-import com.order.dto.order.BuyNowRequest;
-import com.order.dto.order.OrderItemResponseDto;
-import com.order.dto.order.OrderResponseDto;
+import com.order.dto.BuyNowRequest;
+import com.order.dto.OrderItemResponseDto;
+import com.order.dto.OrderResponseDto;
 import com.order.entity.Order;
 import com.order.entity.OrderAddress;
 import com.order.entity.OrderItem;

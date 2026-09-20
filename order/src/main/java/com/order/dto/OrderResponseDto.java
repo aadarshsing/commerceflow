@@ -1,4 +1,4 @@
-package com.order.dto.order;
+package com.order.dto;
 
 import com.order.entity.enums.OrderStatus;
 import org.commerceflow.dto.order.OrderAddressResponseDto;

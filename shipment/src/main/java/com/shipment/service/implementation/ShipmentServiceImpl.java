@@ -47,6 +47,16 @@ public class ShipmentServiceImpl implements IshipmentService {
 
         shipment.setShippingAddress(shippingAddress);
         shipmentRepository.save(shipment);
+        notificationFeignClient.createNotification(
+                new CreateNotificationDto(
+                        createShipmentDto.customerId(),
+                        NotificationType.SHIPMENT_CREATED,
+                        "POP UP",
+                        "Order",
+                        "Shipment Created Successfully",
+                        createShipmentDto.orderId().toString()
+                )
+        );
         return new ResponseDto(
                 HttpStatus.CREATED.toString(),
                 shipment.getId().toString()

@@ -1,10 +1,10 @@
 package com.order.controller;
 
 
-import com.order.dto.order.BuyNowRequest;
-import com.order.dto.order.CartCheckOutRequest;
-import com.order.dto.order.OrderResponseDto;
-import com.order.dto.order.ResponseDto;
+import com.order.dto.BuyNowRequest;
+import com.order.dto.CartCheckOutRequest;
+import com.order.dto.OrderResponseDto;
+import com.order.dto.ResponseDto;
 import com.order.entity.enums.OrderStatus;
 import com.order.service.IOrderService;
 import jakarta.validation.Valid;

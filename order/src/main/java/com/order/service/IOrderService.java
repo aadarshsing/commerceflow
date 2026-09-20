@@ -1,9 +1,9 @@
 package com.order.service;
 
 
-import com.order.dto.order.BuyNowRequest;
-import com.order.dto.order.CartCheckOutRequest;
-import com.order.dto.order.OrderResponseDto;
+import com.order.dto.BuyNowRequest;
+import com.order.dto.CartCheckOutRequest;
+import com.order.dto.OrderResponseDto;
 import com.order.entity.enums.OrderStatus;
 import org.springframework.data.domain.Page;
 
