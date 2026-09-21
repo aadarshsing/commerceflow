@@ -15,6 +15,7 @@
         <option value="$PROJECT_DIR$/notification/pom.xml" />
         <option value="$PROJECT_DIR$/shipment/pom.xml" />
         <option value="$PROJECT_DIR$/commerceflow-contracts/pom.xml" />
+        <option value="$PROJECT_DIR$/gatewayServer/pom.xml" />
       </list>
     </option>
   </component>

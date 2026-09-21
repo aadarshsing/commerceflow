@@ -9,6 +9,7 @@
         <outputRelativeToContentRoot value="true" />
         <module name="eurekaServer" />
         <module name="commerceflow-contracts" />
+        <module name="gatewayServer" />
       </profile>
       <profile name="Annotation profile for shipment" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
@@ -34,6 +35,7 @@
       <module name="catalog" options="-parameters" />
       <module name="customer" options="-parameters" />
       <module name="eurekaServer" options="-parameters" />
+      <module name="gatewayServer" options="-parameters" />
       <module name="inventory" options="-parameters" />
       <module name="notification" options="-parameters" />
       <module name="order" options="-parameters" />

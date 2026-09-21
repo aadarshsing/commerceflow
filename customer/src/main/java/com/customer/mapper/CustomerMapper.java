@@ -12,7 +12,11 @@ public class CustomerMapper {
 
     public static CustomerResponseDto customerToDtoMapper(Customer customer){
         CustomerResponseDto createCustomerResponseDto = new CustomerResponseDto(
-                customer.getName(), customer.getEmail(), customer.getPhoneNumber(), customer.getCustomerStatus(),
+                customer.getId(),
+                customer.getName(),
+                customer.getEmail(),
+                customer.getPhoneNumber(),
+                customer.getCustomerStatus(),
                 customer.getAddresses().stream().map(AddressMapper::addressEntityToDtoMapper).toList());
         return createCustomerResponseDto;
     }
