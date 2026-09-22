@@ -9,6 +9,8 @@ import com.order.entity.enums.OrderStatus;
 import com.order.service.IOrderService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -22,13 +24,27 @@ import org.springframework.web.bind.annotation.*;
 @Validated
 public class OrderController {
 
+    Logger logger = LoggerFactory.getLogger(OrderController.class);
+
     @Autowired
     IOrderService orderService;
 
     @PostMapping("/orders/checkout")
-    public ResponseEntity<ResponseDto>  createOrderFromCart(@Valid @RequestBody CartCheckOutRequest cartCheckOutRequest){
+    public ResponseEntity<ResponseDto>  createOrderFromCart(@RequestHeader("commerceflow-correlation-id") String correlationId,
+            @Valid @RequestBody CartCheckOutRequest cartCheckOutRequest){
 
-        orderService.createOrderFromCart(cartCheckOutRequest);
+        logger.info("Order checkout request received. correlationId={}, customerId={}, cartId={}, shippingAddressId={}",
+                correlationId,
+                cartCheckOutRequest.customerId(),
+                cartCheckOutRequest.cartId(),
+                cartCheckOutRequest.shippingAddressId());
+        logger.debug("Calling OrderService.createOrderFromCart. correlationId={}, cartId={}",
+                correlationId,
+                cartCheckOutRequest.cartId());
+        OrderResponseDto orderResponseDto = orderService.createOrderFromCart(cartCheckOutRequest,correlationId);
+        logger.info("OrderService.createOrderFromCart completed. correlationId={}, orderResponseDto={}",
+                correlationId,
+                orderResponseDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(new ResponseDto(
                 HttpStatus.CREATED.toString(),
                 "Order is created Successfully"

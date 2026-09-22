@@ -28,8 +28,9 @@ public interface IOrderService {
     /**
      *
      * @param cartCheckOutRequest
+     * @param correlationId
      */
-    void createOrderFromCart(CartCheckOutRequest cartCheckOutRequest);
+    OrderResponseDto createOrderFromCart(CartCheckOutRequest cartCheckOutRequest, String correlationId);
 
     /**
      *

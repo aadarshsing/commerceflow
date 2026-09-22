@@ -29,3 +29,8 @@ management:
     gateway:
       enabled: true
 
+logging:
+  level:
+    com:
+      gatewayServer: DEBUG
+

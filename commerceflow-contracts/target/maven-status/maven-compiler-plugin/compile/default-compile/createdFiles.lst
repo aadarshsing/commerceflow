@@ -2,6 +2,7 @@ org/commerceflow/dto/cart/CartItemResponseDto.class
 org/commerceflow/dto/shipment/CreateShipmentDto.class
 org/commerceflow/dto/notification/NotificationResponseDto.class
 org/commerceflow/dto/payment/CreatePaymentDto.class
+org/commerceflow/constants/CorrelationIdConstants.class
 org/commerceflow/enums/inventory/InventoryStatus.class
 org/commerceflow/enums/customer/AddressType.class
 org/commerceflow/dto/payment/PaymentResponseDto.class

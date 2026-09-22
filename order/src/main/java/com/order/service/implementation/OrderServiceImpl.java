@@ -15,6 +15,7 @@ import com.order.mapper.OrderMapper;
 import com.order.repository.OrderRepository;
 import com.order.service.IOrderService;
 import com.order.service.client.*;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import org.commerceflow.dto.cart.CartItemResponseDto;
 import org.commerceflow.dto.cart.CartResponseDto;
@@ -30,6 +31,8 @@ import org.commerceflow.enums.inventory.InventoryOperation;
 import org.commerceflow.enums.notification.NotificationType;
 import org.commerceflow.enums.payment.PaymentMethod;
 import org.commerceflow.enums.payment.PaymentStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -47,6 +50,7 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class OrderServiceImpl implements IOrderService {
+    private final Logger logger = LoggerFactory.getLogger(OrderServiceImpl.class);
 
     private final CartFeignClient cartFeignClient;
     private final InventoryFeignClient inventoryFeignClient;
@@ -80,31 +84,96 @@ public class OrderServiceImpl implements IOrderService {
     }
 
     @Override
-    public void createOrderFromCart(CartCheckOutRequest cartCheckOutRequest) {
+    public OrderResponseDto createOrderFromCart(CartCheckOutRequest cartCheckOutRequest, String correlationId) {
+
+        logger.info("Starting order creation. correlationId={}, cartId={}, customerId={}, shippingAddressId={}",
+                correlationId,
+                cartCheckOutRequest.cartId(),
+                cartCheckOutRequest.customerId(),
+                cartCheckOutRequest.shippingAddressId());
 
         CartResponseDto cart = cartFeignClient.getCart(cartCheckOutRequest.cartId()).getBody();
+
         if(cart.getItems().isEmpty()){
+            logger.warn("Cart is empty. correlationId={}, cartId={}",
+                    correlationId,
+                    cartCheckOutRequest.cartId());
             throw new IllegalStateException("Cart is Empty "+cart.getItems());
         }
+
+        logger.debug("Cart fetched successfully. correlationId={}, cartId={}, itemCount={}",
+                correlationId,
+                cartCheckOutRequest.cartId(),
+                cart != null ? cart.getItems().size() : null);
+
         Boolean isExist = customerFeignClient.checkCustomerExist(cartCheckOutRequest.customerId()).getBody();
+        logger.debug("Customer validation completed. correlationId={}, customerId={}, exists={}",
+                correlationId,
+                cartCheckOutRequest.customerId(),
+                isExist);
         if(!isExist){
+            logger.warn("Customer not found. correlationId={}, customerId={}",
+                    correlationId,
+                    cartCheckOutRequest.customerId());
             throw  new ResourceNotFoundException("Customer","CustomerId",cartCheckOutRequest.customerId().toString());
         }
         if(cart == null){
             throw new ResourceNotFoundException("Cart","cartId",cartCheckOutRequest.cartId().toString());
         }
         else if(!cart.getCustomerId().equals(cartCheckOutRequest.customerId())){
+            logger.warn("Cart customer mismatch. correlationId={}, cartId={}, requestCustomerId={}, cartCustomerId={}",
+                    correlationId,
+                    cart.getId(),
+                    cartCheckOutRequest.customerId(),
+                    cart.getCustomerId());
             throw new IllegalStateException("CustomerID does not match with cart's customer's ID");
         }
         if(!cart.getCartStatus().equals(CartStatus.ACTIVE)) {
+            logger.warn("Cart is not active. correlationId={}, cartId={}, cartStatus={}",
+                    correlationId,
+                    cart.getId(),
+                    cart.getCartStatus());
             throw new ResourceNotActiveException("Cart", "cartId", cartCheckOutRequest.cartId().toString());
         }
 
         Order order = OrderMapper.cartToOrderMapper(cart,new Order());
-        AddressResponseDto address = customerFeignClient.getAddress(cartCheckOutRequest.shippingAddressId()).getBody();
-        if(!address.customerId().equals(cartCheckOutRequest.customerId())){
-            throw new IllegalStateException("CustomerID does not match with Address's customer's ID");
+        AddressResponseDto address = null;
+        try {
+            logger.info("Fetching shipping address. correlationId={}, addressId={}, customerId={}",
+                    correlationId,
+                    cartCheckOutRequest.shippingAddressId(),
+                    cartCheckOutRequest.customerId());
+
+            address =
+                    customerFeignClient.getAddress(
+                            cartCheckOutRequest.shippingAddressId()
+                    ).getBody();
+
+            logger.debug("Shipping address fetched successfully. correlationId={}, addressId={}, addressCustomerId={}",
+                    correlationId,
+                    cartCheckOutRequest.shippingAddressId(),
+                    address.customerId());
+
+            if(!address.customerId().equals(cartCheckOutRequest.customerId())){
+                logger.warn("Address customer mismatch. correlationId={}, addressCustomerId={}, requestCustomerId={}",
+                        correlationId,
+                        address.customerId(),
+                        cartCheckOutRequest.customerId());
+                throw new IllegalStateException("CustomerID does not match with Address's customer's ID");
+            }
+
+        } catch (FeignException e) {
+            logger.error("Failed to fetch shipping address. correlationId={}, addressId={}, status={}, message={}",
+                    correlationId,
+                    cartCheckOutRequest.shippingAddressId(),
+                    e.status(),
+                    e.getMessage(),
+                    e);
+
+            throw e;
         }
+
+
         OrderAddress orderAddress = new OrderAddress();
         orderAddress.setOrder(order);
         order.setShippingAddress(OrderMapper.shippingAddressToOrderAddress(address,orderAddress));
@@ -116,9 +185,17 @@ public class OrderServiceImpl implements IOrderService {
             for(CartItemResponseDto cartItem : cartItemList) {
                 ProductResponseDto product = cartItem.getProductResponseDto();
 
-                if (product.status().equals(ProductStatus.INACTIVE)) {
+                if (product.status().toString().equals(ProductStatus.INACTIVE.toString())) {
+                    logger.warn("Product is inactive. correlationId={}, productId={}",
+                            correlationId,
+                            product.id());
                     throw new ResourceNotActiveException("Product", "productId", product.id().toString());
                 }
+
+                logger.debug("Reserving inventory. correlationId={}, productId={}, quantity={}",
+                        correlationId,
+                        product.id(),
+                        cartItem.getQuantity());
 
                 inventoryFeignClient.updateStock(
                         product.id(),
@@ -127,6 +204,12 @@ public class OrderServiceImpl implements IOrderService {
                                 InventoryOperation.RESERVE
                         )
                 );
+
+                logger.debug("Inventory reserved. correlationId={}, productId={}, quantity={}",
+                        correlationId,
+                        product.id(),
+                        cartItem.getQuantity());
+
                 OrderItem orderItem = OrderMapper.cartItemToOrderItemMapper(cartItem,new OrderItem(),product);
                 orderItems.add(orderItem);
                 orderItem.setOrder(order);
@@ -138,7 +221,19 @@ public class OrderServiceImpl implements IOrderService {
 
         order.setOrderItems(orderItems);
         order.setTotalAmount(totalAmount);
-        orderRepository.save(order);
+        logger.info("Saving order. correlationId={}, customerId={}, totalAmount={}, itemCount={}",
+                correlationId,
+                cartCheckOutRequest.customerId(),
+                totalAmount,
+                orderItems.size());
+
+        order = orderRepository.save(order);
+
+        logger.info("Order created successfully in database. correlationId={}, orderId={}, totalAmount={}",
+                correlationId,
+                order.getId(),
+                order.getTotalAmount());
+
         notificationFeignClient.createNotification(
                 new CreateNotificationDto(
                         cartCheckOutRequest.customerId(),
@@ -149,6 +244,9 @@ public class OrderServiceImpl implements IOrderService {
                         order.getId().toString()
                 )
         );
+        logger.debug("ORDER_CREATED notification sent. correlationId={}, orderId={}",
+                correlationId,
+                order.getId());
 
 //         it will call payment then once payment is confirmed that order transition move to confirmed if payment failed
 //         then we will again release inventory product and make transition to order not created
@@ -163,6 +261,10 @@ public class OrderServiceImpl implements IOrderService {
                             order.getId().toString()
                     )
             );
+            logger.info("Starting payment processing. correlationId={}, orderId={}, paymentMethod={}",
+                    correlationId,
+                    order.getId(),
+                    PaymentMethod.UPI);
 
             ResponseDto paymentResponseDto = paymentFeignClient.createPayment(
                     new CreatePaymentDto(
@@ -172,8 +274,17 @@ public class OrderServiceImpl implements IOrderService {
                     )
             ).getBody();
 
+            logger.info("Payment response received. correlationId={}, orderId={}, paymentStatus={}",
+                    correlationId,
+                    order.getId(),
+                    paymentResponseDto.statusMsg());
+
             if (paymentResponseDto.statusMsg().equals(PaymentStatus.FAILED.toString())) {
                 for (int i = 1; i < 5; i++) {
+                    logger.warn("Retrying payment. correlationId={}, orderId={}, attempt={}",
+                            correlationId,
+                            order.getId(),
+                            i);
                     paymentResponseDto = paymentFeignClient.createPayment(
                             new CreatePaymentDto(
                                     order.getId(),
@@ -186,9 +297,17 @@ public class OrderServiceImpl implements IOrderService {
                 }
             }
             if(paymentResponseDto.statusMsg().equals(PaymentStatus.FAILED.toString())){
-
+                logger.error("Payment failed after retries. correlationId={}, orderId={}",
+                        correlationId,
+                        order.getId());
                 for(CartItemResponseDto cartItem:cartItemList){
                     ProductResponseDto product = cartItem.getProductResponseDto();
+
+                    logger.info("Releasing reserved inventory after payment failure. correlationId={}, orderId={}, productId={}, quantity={}",
+                            correlationId,
+                            order.getId(),
+                            product.id(),
+                            cartItem.getQuantity());
 
                     inventoryFeignClient.updateStock(
                             product.id(),
@@ -201,7 +320,9 @@ public class OrderServiceImpl implements IOrderService {
 
             }
             if(paymentResponseDto.statusMsg().equals(PaymentStatus.SUCCESS.toString())){
-
+                logger.info("Payment successful. Confirming order. correlationId={}, orderId={}",
+                        correlationId,
+                        order.getId());
                 order.setOrderStatus(OrderStatus.CONFIRMED);
                 orderRepository.save(order);
                 notificationFeignClient.createNotification(
@@ -214,6 +335,14 @@ public class OrderServiceImpl implements IOrderService {
                                 order.getId().toString()
                         )
                 );
+                logger.debug("ORDER_CONFIRMED notification sent. correlationId={}, orderId={}",
+                        correlationId,
+                        order.getId());
+
+                logger.info("Creating shipment. correlationId={}, orderId={}, customerId={}",
+                        correlationId,
+                        order.getId(),
+                        cartCheckOutRequest.customerId());
                 ResponseDto responseDto = shipmentFeignClient.createShipment(
                         new CreateShipmentDto(
                                 order.getId(),
@@ -221,12 +350,20 @@ public class OrderServiceImpl implements IOrderService {
                                 AddressMapper.orderAddressToAddressResponseDtoMapper(orderAddress)
                         )
                 ).getBody();
+                logger.info("Shipment creation response received. correlationId={}, orderId={}, statusCode={}",
+                        correlationId,
+                        order.getId(),
+                        responseDto != null ? responseDto.statusCode() : null);
                 if (responseDto == null) {
                     throw new RuntimeException("Payment response is null");
                 }
 
                 if (HttpStatus.CREATED.toString().equals(responseDto.statusCode())) {
                     cartFeignClient.deleteCartItems(cart.getId());
+                    logger.info("Cart cleared after successful order creation. correlationId={}, cartId={}, orderId={}",
+                            correlationId,
+                            cart.getId(),
+                            order.getId());
                 }
                 else{
                     throw new RuntimeException("Shipment cannot be created");
@@ -235,15 +372,38 @@ public class OrderServiceImpl implements IOrderService {
 
             }
         } catch (Exception e) {
+            logger.error("Order processing failed. correlationId={}, orderId={}, error={}",
+                    correlationId,
+                    order.getId(),
+                    e.getMessage(),
+                    e);
             order.setOrderStatus(OrderStatus.CANCELLED);
             orderRepository.save(order);
+            logger.warn("Order marked as CANCELLED. correlationId={}, orderId={}",
+                    correlationId,
+                    order.getId());
             PaymentResponseDto paymentSuccessful = Objects.requireNonNull(paymentFeignClient.getPaymentByOrder(order.getId())
                             .getBody())
                     .stream()
                     .filter(payment -> Objects.equals(payment.status().toString(), PaymentStatus.SUCCESS.toString())).findFirst().orElse(null);
+
             if(paymentSuccessful!=null){
+
+                logger.info("Initiating payment refund. correlationId={}, orderId={}, paymentId={}",
+                        correlationId,
+                        order.getId(),
+                        paymentSuccessful.paymentId());
                 paymentFeignClient.createRefundPayment(paymentSuccessful.paymentId(),paymentSuccessful.orderId());
+
+                logger.info("Payment refund initiated successfully. correlationId={}, orderId={}, paymentId={}",
+                        correlationId,
+                        order.getId(),
+                        paymentSuccessful.paymentId());
             }
+
+            logger.debug("Sending ORDER_CANCELLED notification. correlationId={}, orderId={}",
+                    correlationId,
+                    order.getId());
             notificationFeignClient.createNotification(
                     new CreateNotificationDto(
                             order.getCustomerId(),
@@ -260,7 +420,11 @@ public class OrderServiceImpl implements IOrderService {
                 if (product.status().equals(ProductStatus.INACTIVE)) {
                     throw new ResourceNotActiveException("Product", "productId", product.id().toString());
                 }
-
+                logger.info("Releasing inventory during order rollback. correlationId={}, orderId={}, productId={}, quantity={}",
+                        correlationId,
+                        order.getId(),
+                        product.id(),
+                        cartItem.getQuantity());
                 inventoryFeignClient.updateStock(
                         product.id(),
                         new UpdateInventoryDto(
@@ -274,9 +438,12 @@ public class OrderServiceImpl implements IOrderService {
                     e
             );
         }
+        logger.info("Order creation completed successfully. correlationId={}, orderId={}, orderStatus={}",
+                correlationId,
+                order.getId(),
+                order.getOrderStatus());
 
-
-
+        return OrderMapper.orderToOrderResponseDtoMapper(order);
 
     }
 
