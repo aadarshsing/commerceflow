@@ -11,6 +11,9 @@ spring:
             locator:
               enabled: false
               lowerCaseServiceId: true
+          httpclient:
+            connect-timeout: 2000
+            response-timeout: 3s
 eureka:
   instance:
     preferIpAddress: true
@@ -33,4 +36,53 @@ logging:
   level:
     com:
       gatewayServer: DEBUG
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 10
+        failureRateThreshold: 50
+        slowCallDurationThreshold: 1s
+        slowCallRateThreshold: 50
+        permittedNumberOfCallsInHalfOpenState: 2
+        waitDurationInOpenState: 10s
+
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 3s
+        cancelRunningFuture: true
+
+    instances:
+      customerCircuitBreaker:
+        timeoutDuration: 3s
+        cancelRunningFuture: true
+
+      paymentCircuitBreaker:
+        timeoutDuration: 3s
+        cancelRunningFuture: true
+
+      orderCircuitBreaker:
+        timeoutDuration: 3s
+        cancelRunningFuture: true
+
+      catalogCircuitBreaker:
+        timeoutDuration: 3s
+        cancelRunningFuture: true
+
+      inventoryCircuitBreaker:
+        timeoutDuration: 3s
+        cancelRunningFuture: true
+
+      cartCircuitBreaker:
+        timeoutDuration: 3s
+        cancelRunningFuture: true
+
+
+
+
+
 

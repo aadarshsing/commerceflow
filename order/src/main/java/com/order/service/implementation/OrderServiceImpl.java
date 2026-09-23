@@ -94,7 +94,7 @@ public class OrderServiceImpl implements IOrderService {
 
         CartResponseDto cart = cartFeignClient.getCart(cartCheckOutRequest.cartId()).getBody();
 
-        if(cart.getItems().isEmpty()){
+        if(cart != null && cart.getItems().isEmpty()){
             logger.warn("Cart is empty. correlationId={}, cartId={}",
                     correlationId,
                     cartCheckOutRequest.cartId());
@@ -117,10 +117,8 @@ public class OrderServiceImpl implements IOrderService {
                     cartCheckOutRequest.customerId());
             throw  new ResourceNotFoundException("Customer","CustomerId",cartCheckOutRequest.customerId().toString());
         }
-        if(cart == null){
-            throw new ResourceNotFoundException("Cart","cartId",cartCheckOutRequest.cartId().toString());
-        }
-        else if(!cart.getCustomerId().equals(cartCheckOutRequest.customerId())){
+
+        else if(cart!=null && !cart.getCustomerId().equals(cartCheckOutRequest.customerId())){
             logger.warn("Cart customer mismatch. correlationId={}, cartId={}, requestCustomerId={}, cartCustomerId={}",
                     correlationId,
                     cart.getId(),
@@ -128,7 +126,7 @@ public class OrderServiceImpl implements IOrderService {
                     cart.getCustomerId());
             throw new IllegalStateException("CustomerID does not match with cart's customer's ID");
         }
-        if(!cart.getCartStatus().equals(CartStatus.ACTIVE)) {
+        if(cart != null && !cart.getCartStatus().equals(CartStatus.ACTIVE)) {
             logger.warn("Cart is not active. correlationId={}, cartId={}, cartStatus={}",
                     correlationId,
                     cart.getId(),
@@ -216,7 +214,7 @@ public class OrderServiceImpl implements IOrderService {
                 totalAmount = totalAmount.add(product.price().multiply(BigDecimal.valueOf(cartItem.getQuantity())));
             }
         } catch (ResourceNotActiveException e) {
-            throw new IllegalStateException("something happened wrong.Please try again");
+            throw new IllegalStateException("something happened wrong.Please try again", e);
         }
 
         order.setOrderItems(orderItems);
@@ -410,7 +408,7 @@ public class OrderServiceImpl implements IOrderService {
                             NotificationType.ORDER_CANCELLED,
                             "POP UP",
                             "Order",
-                            "Order Cancelled",
+                            "Order Cancelled " + e,
                             order.getId().toString()
                     )
             );
@@ -471,7 +469,7 @@ public class OrderServiceImpl implements IOrderService {
                     )
             );
         } catch (Exception e) {
-            throw new IllegalStateException("Something happend wrong. Please try again");
+            throw new IllegalStateException("Something happend wrong. Please try again",e);
         }
         OrderAddress orderAddress = new OrderAddress();
         orderAddress.setOrder(order);
@@ -578,7 +576,7 @@ public class OrderServiceImpl implements IOrderService {
                             NotificationType.ORDER_CANCELLED,
                             "POP UP",
                             "Order",
-                            "Order is Cancelled due to some issue",
+                            "Order is Cancelled due to some issue" + e,
                             order.getId().toString()
                     )
             );

@@ -77,7 +77,7 @@ public class PaymentServiceImpl implements IPaymentService {
                             createPaymentDto.orderId().toString()
                     )
             );
-            throw new RuntimeException("Payment cannot created");
+            throw new RuntimeException("Payment cannot created" +e);
         } catch (IllegalArgumentException e) {
             notificationFeignClient.createNotification(
                     new CreateNotificationDto(

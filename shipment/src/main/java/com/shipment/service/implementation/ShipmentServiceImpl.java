@@ -8,6 +8,7 @@ import com.shipment.entity.Shipment;
 import com.shipment.entity.ShippingAddress;
 import com.shipment.entity.enums.NotificationType;
 import com.shipment.entity.enums.ShipmentStatus;
+import com.shipment.exception.DuplicateResourceException;
 import com.shipment.exception.ResourceNotFoundException;
 import com.shipment.mapper.ShipmentMapper;
 import com.shipment.repository.ShipmentRepository;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Optional;
 
 @Service
 @AllArgsConstructor
@@ -41,10 +43,13 @@ public class ShipmentServiceImpl implements IshipmentService {
         if(Boolean.FALSE.equals(isExist)){
             throw new ResourceNotFoundException("Order","orderId",createShipmentDto.orderId().toString());
         }
+        Optional<Shipment> checkShipment = shipmentRepository.findByOrderId(createShipmentDto.orderId());
+        if(checkShipment.isPresent()){
+            throw new DuplicateResourceException("Shipment already Exist with given Order " + createShipmentDto.orderId());
+        }
         Shipment shipment = ShipmentMapper.createShipmentDtoToShipmentMapper(new Shipment(),createShipmentDto);
         ShippingAddress shippingAddress = ShipmentMapper.orderAddressToShippingAddressMapper(new ShippingAddress(),createShipmentDto.shippingAddress());
         shippingAddress.setShipment(shipment);
-
         shipment.setShippingAddress(shippingAddress);
         shipmentRepository.save(shipment);
         notificationFeignClient.createNotification(

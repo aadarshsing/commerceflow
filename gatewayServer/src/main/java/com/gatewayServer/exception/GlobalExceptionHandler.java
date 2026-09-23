@@ -2,130 +2,90 @@ package com.gatewayServer.exception;
 
 
 import com.gatewayServer.dto.ErrorResponseDto;
-import jakarta.validation.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
 
-@ControllerAdvice
+@RestControllerAdvice
+@Order(-2)
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<?> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex,WebRequest webRequest){
+    Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-        HashMap<String,String> validationErrors = new HashMap<>();
-        ex.getBindingResult().getFieldErrors()
-                .forEach(
+    @ExceptionHandler(ResponseStatusException.class)
+    public Mono<ResponseEntity<ErrorResponseDto>> handleResponseStatusException(
+            ResponseStatusException exception,
+            ServerWebExchange exchange) {
 
-                        fieldError -> validationErrors.put(fieldError.getField(),fieldError.getDefaultMessage()) );
-        ErrorResponseDto errorResponseDto = new ErrorResponseDto(
-                webRequest.getDescription(false),
-                HttpStatus.BAD_REQUEST,
-                "Validation Error",
-                LocalDateTime.now(),
-                validationErrors
-
+        logger.error(
+                "Gateway exception. path={}, exceptionType={}, message={}",
+                exchange.getRequest().getPath().value(),
+                exception.getClass().getName(),
+                exception.getMessage(),
+                exception
         );
-        return new ResponseEntity<>(errorResponseDto,
-                HttpStatus.BAD_REQUEST);
-    }
-    @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<?> handleConstraintViolationException(ConstraintViolationException ex,WebRequest webRequest){
 
-        HashMap<String,String> validationErrors = new HashMap<>();
+        HttpStatusCode status = exception.getStatusCode();
 
-        ex.getConstraintViolations().forEach(violation -> {
-            String fullPath = violation.getPropertyPath().toString();
-
-            // extract only field name (after last dot)
-            String field = fullPath.contains(".")
-                    ? fullPath.substring(fullPath.lastIndexOf(".") + 1)
-                    : fullPath;
-
-            validationErrors.put(field, violation.getMessage());
-        });
+        String message = exception.getReason() != null
+                ? exception.getReason()
+                : exception.getMessage();
 
         ErrorResponseDto errorResponseDto = new ErrorResponseDto(
-                webRequest.getDescription(false),
-                HttpStatus.BAD_REQUEST,
-                "Validation Error",
+                exchange.getRequest().getPath().value(),
+                status,
+                message != null
+                        ? message
+                        : "An unexpected error occurred",
                 LocalDateTime.now(),
-                validationErrors
+                null
+        );
 
+        return Mono.just(
+                ResponseEntity
+                        .status(status)
+                        .body(errorResponseDto)
         );
-        return new ResponseEntity<>(errorResponseDto,
-                HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ErrorResponseDto> handleResourceNotFoundException(ResourceNotFoundException exception,
-                                                                            WebRequest webRequest) {
-        ErrorResponseDto errorResponseDTO = new ErrorResponseDto(
-                webRequest.getDescription(false),
-                HttpStatus.NOT_FOUND,
-                exception.getMessage(),
-                LocalDateTime.now(),
-                null
-        );
-        return new ResponseEntity<>(errorResponseDTO, HttpStatus.NOT_FOUND);
-    }
-    @ExceptionHandler(ResourceNotActiveException.class)
-    public ResponseEntity<ErrorResponseDto> handleResourceNotActiveException(ResourceNotActiveException exception,
-                                                                            WebRequest webRequest) {
-        ErrorResponseDto errorResponseDTO = new ErrorResponseDto(
-                webRequest.getDescription(false),
-                HttpStatus.NOT_FOUND,
-                exception.getMessage(),
-                LocalDateTime.now(),
-                null
-        );
-        return new ResponseEntity<>(errorResponseDTO, HttpStatus.NOT_FOUND);
-    }
-    @ExceptionHandler(DuplicateResourceException.class)
-    public ResponseEntity<ErrorResponseDto> handleDuplicateResourceException(DuplicateResourceException exception,
-                                                                            WebRequest webRequest) {
-        ErrorResponseDto errorResponseDTO = new ErrorResponseDto(
-                webRequest.getDescription(false),
-                HttpStatus.BAD_REQUEST,
-                exception.getMessage(),
-                LocalDateTime.now(),
-                null
-        );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(errorResponseDTO);
-    }
-    @ExceptionHandler(ResourceNotAvailableException.class)
-    public ResponseEntity<ErrorResponseDto> handleResourceNotAvailableException(ResourceNotAvailableException exception,
-                                                                             WebRequest webRequest) {
-        ErrorResponseDto errorResponseDTO = new ErrorResponseDto(
-                webRequest.getDescription(false),
-                HttpStatus.BAD_REQUEST,
-                exception.getMessage(),
-                LocalDateTime.now(),
-                null
-        );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(errorResponseDTO);
-    }
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponseDto> handleGlobalException(Exception exception,
-                                                                  WebRequest webRequest) {
-        ErrorResponseDto errorResponseDTO = new ErrorResponseDto(
-                webRequest.getDescription(false),
-                HttpStatus.INTERNAL_SERVER_ERROR,
+    public Mono<ResponseEntity<ErrorResponseDto>> handleGlobalException(
+            Exception exception,
+            ServerWebExchange exchange) {
+
+        logger.error(
+                "Gateway exception. path={}, exceptionType={}, message={}",
+                exchange.getRequest().getPath().value(),
+                exception.getClass().getName(),
                 exception.getMessage(),
+                exception
+        );
+
+        String message = exception.getMessage();
+
+        ErrorResponseDto errorResponseDto = new ErrorResponseDto(
+                exchange.getRequest().getPath().value(),
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                message != null ? message : "An unexpected error occurred",
                 LocalDateTime.now(),
                 null
         );
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(errorResponseDTO);
+
+
+        return Mono.just(
+                ResponseEntity
+                        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(errorResponseDto)
+        );
     }
-
-
 }

@@ -11,7 +11,7 @@
         <module name="commerceflow-contracts" />
         <module name="gatewayServer" />
       </profile>
-      <profile name="Annotation profile for shipment" enabled="true">
+      <profile name="Annotation profile for order" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
