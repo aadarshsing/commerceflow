@@ -1,6 +1,7 @@
-package com.order.service.client;
+package com.order.client;
 
-import com.order.service.client.fallback.CustomerFallBack;
+import com.order.client.fallback.CustomerFallBack;
+import com.order.config.feign.FeignRetryConfig;
 import jakarta.validation.constraints.NotNull;
 import org.commerceflow.dto.customer.AddressResponseDto;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -8,7 +9,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
-@FeignClient(name = "customer",fallback = CustomerFallBack.class)
+@FeignClient(name = "customer"
+        ,configuration = FeignRetryConfig.class
+        ,fallback = CustomerFallBack.class)
 public interface CustomerFeignClient {
 
     @GetMapping("api/address/{addressId}")

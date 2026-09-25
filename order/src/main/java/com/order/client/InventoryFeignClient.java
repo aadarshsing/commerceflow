@@ -1,5 +1,6 @@
-package com.order.service.client;
-import com.order.service.client.fallback.InventoryFallBack;
+package com.order.client;
+import com.order.client.fallback.InventoryFallBack;
+import com.order.config.feign.FeignRetryConfig;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -13,7 +14,9 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
-@FeignClient(name = "inventory",fallback = InventoryFallBack.class)
+@FeignClient(name = "inventory"
+        ,configuration = FeignRetryConfig.class
+        ,fallback = InventoryFallBack.class)
 public interface InventoryFeignClient {
 
     @PutMapping("api/inventories/{productId}/stock")

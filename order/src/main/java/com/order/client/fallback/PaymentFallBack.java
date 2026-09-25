@@ -1,8 +1,8 @@
-package com.order.service.client.fallback;
+package com.order.client.fallback;
 
 import com.order.dto.ResponseDto;
 import com.order.exception.ServiceUnavailableException;
-import com.order.service.client.PaymentFeignClient;
+import com.order.client.PaymentFeignClient;
 import org.commerceflow.dto.payment.CreatePaymentDto;
 import org.commerceflow.dto.payment.PaymentResponseDto;
 import org.springframework.http.ResponseEntity;

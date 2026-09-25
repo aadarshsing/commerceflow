@@ -1,7 +1,7 @@
-package com.order.service.client.fallback;
+package com.order.client.fallback;
 
 import com.order.exception.ServiceUnavailableException;
-import com.order.service.client.InventoryFeignClient;
+import com.order.client.InventoryFeignClient;
 import org.commerceflow.dto.inventory.InventoryResponseDto;
 import org.commerceflow.dto.inventory.UpdateInventoryDto;
 import org.springframework.http.ResponseEntity;

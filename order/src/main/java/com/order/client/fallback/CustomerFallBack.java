@@ -1,7 +1,7 @@
-package com.order.service.client.fallback;
+package com.order.client.fallback;
 
 import com.order.exception.ServiceUnavailableException;
-import com.order.service.client.CustomerFeignClient;
+import com.order.client.CustomerFeignClient;
 import org.commerceflow.dto.customer.AddressResponseDto;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;

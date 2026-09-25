@@ -1,8 +1,9 @@
-package com.order.service.client;
+package com.order.client;
 
 
+import com.order.config.feign.FeignRetryConfig;
 import com.order.dto.ResponseDto;
-import com.order.service.client.fallback.PaymentFallBack;
+import com.order.client.fallback.PaymentFallBack;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.commerceflow.dto.payment.CreatePaymentDto;
@@ -13,7 +14,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@FeignClient(name = "payment",fallback = PaymentFallBack.class)
+@FeignClient(name = "payment"
+        ,configuration = FeignRetryConfig.class
+        ,fallback = PaymentFallBack.class)
 public interface PaymentFeignClient {
 
     @PostMapping("api/payments")

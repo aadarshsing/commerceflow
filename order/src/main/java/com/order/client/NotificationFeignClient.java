@@ -1,7 +1,7 @@
-package com.order.service.client;
+package com.order.client;
 
 import com.order.dto.ResponseDto;
-import com.order.service.client.fallback.NotificationFallBack;
+import com.order.client.fallback.NotificationFallBack;
 import jakarta.validation.Valid;
 import org.commerceflow.dto.notification.CreateNotificationDto;
 import org.springframework.cloud.openfeign.FeignClient;

@@ -1,7 +1,8 @@
-package com.order.service.client;
+package com.order.client;
 
+import com.order.config.feign.FeignRetryConfig;
 import com.order.dto.ResponseDto;
-import com.order.service.client.fallback.CartFallBack;
+import com.order.client.fallback.CartFallBack;
 import jakarta.validation.constraints.NotNull;
 import org.commerceflow.dto.cart.CartResponseDto;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -10,7 +11,9 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
-@FeignClient(name = "cart",fallback = CartFallBack.class)
+@FeignClient(name = "cart"
+        ,configuration = FeignRetryConfig.class
+        ,fallback = CartFallBack.class)
 public interface CartFeignClient {
 
     @GetMapping("api/carts/{cartId}")
