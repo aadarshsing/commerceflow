@@ -30,7 +30,9 @@ public class OrderController {
     IOrderService orderService;
 
     @PostMapping("/orders/checkout")
-    public ResponseEntity<ResponseDto>  createOrderFromCart(@RequestHeader("commerceflow-correlation-id") String correlationId,
+    public ResponseEntity<ResponseDto>  createOrderFromCart(
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @RequestHeader("commerceflow-correlation-id") String correlationId,
             @Valid @RequestBody CartCheckOutRequest cartCheckOutRequest){
 
         logger.info("Order checkout request received. correlationId={}, customerId={}, cartId={}, shippingAddressId={}",
@@ -41,7 +43,7 @@ public class OrderController {
         logger.debug("Calling OrderService.createOrderFromCart. correlationId={}, cartId={}",
                 correlationId,
                 cartCheckOutRequest.cartId());
-        OrderResponseDto orderResponseDto = orderService.createOrderFromCart(cartCheckOutRequest,correlationId);
+        OrderResponseDto orderResponseDto = orderService.createOrderFromCart(cartCheckOutRequest,correlationId,idempotencyKey);
         logger.info("OrderService.createOrderFromCart completed. correlationId={}, orderResponseDto={}",
                 correlationId,
                 orderResponseDto);
@@ -52,9 +54,11 @@ public class OrderController {
     }
 
     @PostMapping("/orders/buy-now")
-    public ResponseEntity<ResponseDto> createOrderFromProduct(@Valid @RequestBody BuyNowRequest buyNowRequest){
+    public ResponseEntity<ResponseDto> createOrderFromProduct(
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @Valid @RequestBody BuyNowRequest buyNowRequest){
 
-        orderService.createOrderFromBuyNow(buyNowRequest);
+        orderService.createOrderFromBuyNow(idempotencyKey,buyNowRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(new ResponseDto(
                 HttpStatus.CREATED.toString(),
                 "Order is created Successfully"

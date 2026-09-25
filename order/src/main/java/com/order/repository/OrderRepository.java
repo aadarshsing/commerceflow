@@ -21,5 +21,7 @@ public interface OrderRepository extends JpaRepository<Order,Long> {
             """)
     Page<Order> findAllOrderByCustomerId(long customerId, Pageable pageable);
 
+    Optional<Order> findByIdempotencyKey(String idempotencyKey);
+
 
 }

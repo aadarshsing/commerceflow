@@ -29,14 +29,16 @@ public interface IOrderService {
      *
      * @param cartCheckOutRequest
      * @param correlationId
+     * @param idempotencyKey
      */
-    OrderResponseDto createOrderFromCart(CartCheckOutRequest cartCheckOutRequest, String correlationId);
+    OrderResponseDto createOrderFromCart(CartCheckOutRequest cartCheckOutRequest, String correlationId,String idempotencyKey);
 
     /**
      *
+     * @param idempotencyKey
      * @param buyNowRequest
      */
-    void createOrderFromBuyNow(BuyNowRequest buyNowRequest);
+    void createOrderFromBuyNow(String idempotencyKey,BuyNowRequest buyNowRequest);
 
     /**
      *

@@ -5,6 +5,7 @@ import com.inventory.dto.inventory.InventoryResponseDto;
 import com.inventory.dto.catalog.ProductResponseDto;
 import com.inventory.dto.inventory.UpdateInventoryDto;
 import com.inventory.enitity.Inventory;
+import com.inventory.enitity.InventoryOperations;
 import com.inventory.enitity.enums.InventoryOperation;
 import com.inventory.enitity.enums.ProductStatus;
 import com.inventory.enitity.enums.InventoryStatus;
@@ -13,6 +14,8 @@ import com.inventory.exception.ResourceNotActiveException;
 import com.inventory.exception.ResourceNotAvailableException;
 import com.inventory.exception.ResourceNotFoundException;
 import com.inventory.mapper.InventoryMapper;
+import com.inventory.mapper.InventoryOperationMapper;
+import com.inventory.repository.InventoryOperationsRepository;
 import com.inventory.repository.InventoryRepository;
 import com.inventory.service.IInventoryService;
 import com.inventory.service.client.ProductFeignClient;
@@ -29,6 +32,7 @@ public class InventoryServiceImpl implements IInventoryService {
 
     InventoryRepository inventoryRepository;
     ProductFeignClient productFeignClient;
+    InventoryOperationsRepository inventoryOperationsRepository;
 
     @Override
     public void createInventory(CreateInventoryDto inventoryDto) {
@@ -59,67 +63,66 @@ public class InventoryServiceImpl implements IInventoryService {
 
     @Transactional
     @Override
-    public InventoryResponseDto updateInventory(Long productId, UpdateInventoryDto updateInventoryDto) {
+    public InventoryResponseDto updateInventory(Long productId, String idempotencyKey, UpdateInventoryDto updateInventoryDto) {
         Inventory inventory = inventoryRepository.findByProductId(productId).orElseThrow(
-                () -> new ResourceNotFoundException("Inventory","productId",productId.toString())
+                () -> new ResourceNotFoundException("Inventory", "productId", productId.toString())
         );
+        Optional<InventoryOperations> inventoryOperations = inventoryOperationsRepository.findByIdempotencyKey(idempotencyKey);
+        if (inventoryOperations.isPresent()) {
+             return InventoryMapper.inventoryToResponseDtoMapper(inventory);
+        }
         int availableQuantity = inventory.getAvailableQuantity();
-        if(updateInventoryDto.operation().equals(InventoryOperation.ADD)){
+        if (updateInventoryDto.operation().equals(InventoryOperation.ADD)) {
             availableQuantity = availableQuantity + updateInventoryDto.quantity();
             inventory.setAvailableQuantity(availableQuantity);
-            if(availableQuantity > inventory.getLowStockThreshold()){
+            if (availableQuantity > inventory.getLowStockThreshold()) {
                 inventory.setInventoryStatus(InventoryStatus.ACTIVE);
-            }
-            else if(availableQuantity <= inventory.getLowStockThreshold() && availableQuantity > 0){
+            } else if (availableQuantity <= inventory.getLowStockThreshold() && availableQuantity > 0) {
                 inventory.setInventoryStatus(InventoryStatus.LOW_STOCK);
             }
-        }
-        else if(updateInventoryDto.operation().equals(InventoryOperation.REMOVE)){
-            if(availableQuantity < updateInventoryDto.quantity()){
-                throw new ResourceNotAvailableException("Inventory","Quantity",String.valueOf(availableQuantity));
+        } else if (updateInventoryDto.operation().equals(InventoryOperation.REMOVE)) {
+            if (availableQuantity < updateInventoryDto.quantity()) {
+                throw new ResourceNotAvailableException("Inventory", "Quantity", String.valueOf(availableQuantity));
             }
             availableQuantity -= updateInventoryDto.quantity();
             inventory.setAvailableQuantity(availableQuantity);
-            if(availableQuantity <= inventory.getLowStockThreshold() && availableQuantity > 0){
+            if (availableQuantity <= inventory.getLowStockThreshold() && availableQuantity > 0) {
                 inventory.setInventoryStatus(InventoryStatus.LOW_STOCK);
-            }
-            else if(availableQuantity == 0){
+            } else if (availableQuantity == 0) {
                 inventory.setInventoryStatus(InventoryStatus.SOLDOUT);
             }
-        }
-        else if(updateInventoryDto.operation().equals(InventoryOperation.RESERVE)){
-            if(availableQuantity < updateInventoryDto.quantity()){
-                throw new ResourceNotAvailableException("Inventory","Quantity",String.valueOf(availableQuantity));
+        } else if (updateInventoryDto.operation().equals(InventoryOperation.RESERVE)) {
+            if (availableQuantity < updateInventoryDto.quantity()) {
+                throw new ResourceNotAvailableException("Inventory", "Quantity", String.valueOf(availableQuantity));
             }
             availableQuantity -= updateInventoryDto.quantity();
             inventory.setAvailableQuantity(availableQuantity);
             inventory.setReservedQuantity(updateInventoryDto.quantity() + inventory.getReservedQuantity());
-            if(availableQuantity <= inventory.getLowStockThreshold() && availableQuantity > 0){
+            if (availableQuantity <= inventory.getLowStockThreshold() && availableQuantity > 0) {
                 inventory.setInventoryStatus(InventoryStatus.LOW_STOCK);
-            }
-            else if(availableQuantity == 0){
+            } else if (availableQuantity == 0) {
                 inventory.setInventoryStatus(InventoryStatus.SOLDOUT);
             }
-        }
-        else if(updateInventoryDto.operation().equals(InventoryOperation.RELEASE)){
+        } else if (updateInventoryDto.operation().equals(InventoryOperation.RELEASE)) {
             availableQuantity += updateInventoryDto.quantity();
-            if(updateInventoryDto.quantity() > inventory.getReservedQuantity() ){
-                throw new ResourceNotAvailableException("Inventory","ReserveQuantity",String.valueOf(inventory.getReservedQuantity()));
+            if (updateInventoryDto.quantity() > inventory.getReservedQuantity()) {
+                throw new ResourceNotAvailableException("Inventory", "ReserveQuantity", String.valueOf(inventory.getReservedQuantity()));
             }
             int reserveQuantity = inventory.getReservedQuantity() - updateInventoryDto.quantity();
             inventory.setAvailableQuantity(availableQuantity);
             inventory.setReservedQuantity(reserveQuantity);
-            if(availableQuantity > inventory.getLowStockThreshold()){
+            if (availableQuantity > inventory.getLowStockThreshold()) {
                 inventory.setInventoryStatus(InventoryStatus.ACTIVE);
-            }
-            else if(availableQuantity <= inventory.getLowStockThreshold() && availableQuantity > 0){
+            } else if (availableQuantity <= inventory.getLowStockThreshold() && availableQuantity > 0) {
                 inventory.setInventoryStatus(InventoryStatus.LOW_STOCK);
             }
         }
-
-       inventory =  inventoryRepository.save(inventory);
+        InventoryOperations inventoryOperationsToSave = InventoryOperationMapper.updateInventoryDtoToInventoryOperation(updateInventoryDto, new InventoryOperations());
+        inventoryOperationsToSave.setProductId(productId);
+        inventoryOperationsToSave.setIdempotencyKey(idempotencyKey);
+        inventoryOperationsRepository.save(inventoryOperationsToSave);
+        inventory = inventoryRepository.save(inventory);
         return InventoryMapper.inventoryToResponseDtoMapper(inventory);
-
 
 
     }

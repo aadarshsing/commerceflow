@@ -36,7 +36,8 @@ public  class Order  extends BaseEntity {
             mappedBy = "order",
             cascade = CascadeType.ALL)
     private OrderAddress shippingAddress;
-
+    @Column(nullable = false,unique = true)
+    private String idempotencyKey;
     @OneToMany(
             mappedBy = "order",
             cascade = CascadeType.ALL,

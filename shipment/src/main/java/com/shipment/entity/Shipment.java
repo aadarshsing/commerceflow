@@ -31,6 +31,8 @@ public class Shipment {
     )
     private String trackingNumber;
     private String carrier;
+    @Column(nullable = false)
+    private String idempotencyKey;
     @Enumerated(EnumType.STRING)
     private ShipmentStatus status;
     @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)

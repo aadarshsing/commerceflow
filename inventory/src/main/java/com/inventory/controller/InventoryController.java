@@ -54,8 +54,9 @@ public class InventoryController {
             @NotNull(message = "productId cannot be null")
             @Positive(message = "productId must be greater than 0")
             @PathVariable Long productId,
+            @RequestParam String idempotencyKey,
             @Valid @RequestBody UpdateInventoryDto updateInventoryDto){
-        InventoryResponseDto inventoryResponseDto = inventoryService.updateInventory(productId, updateInventoryDto);
+        InventoryResponseDto inventoryResponseDto = inventoryService.updateInventory(productId,idempotencyKey, updateInventoryDto);
         return ResponseEntity.ok(inventoryResponseDto);
     }
 

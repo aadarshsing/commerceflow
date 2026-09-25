@@ -26,10 +26,11 @@ public interface IInventoryService {
      *
      *
      * @param productId
+     * @param idempotencyKey
      * @param updateInventoryDto
      * @return -- it return the updated inventory response object
      */
-    InventoryResponseDto updateInventory(Long productId, UpdateInventoryDto updateInventoryDto);
+    InventoryResponseDto updateInventory(Long productId,String idempotencyKey, UpdateInventoryDto updateInventoryDto);
 
     /**
      *

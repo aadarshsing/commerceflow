@@ -13,7 +13,6 @@ import com.payment.service.IPaymentService;
 import com.payment.service.client.NotificationFeignClient;
 import com.payment.service.client.OrderFeignClient;
 import lombok.AllArgsConstructor;
-import org.aspectj.weaver.ast.Not;
 import org.commerceflow.dto.notification.CreateNotificationDto;
 import org.commerceflow.dto.order.OrderResponseDto;
 import org.commerceflow.enums.notification.NotificationType;
@@ -37,24 +36,33 @@ public class PaymentServiceImpl implements IPaymentService {
     OrderFeignClient orderFeignClient;
     NotificationFeignClient notificationFeignClient;
     @Override
-    public ResponseDto createPayment(CreatePaymentDto createPaymentDto) {
+    public ResponseDto createPayment(String paymentIdempotencyKey, CreatePaymentDto createPaymentDto) {
 
         try {
             OrderResponseDto orderResponseDto = orderFeignClient.getOrder(createPaymentDto.orderId()).getBody();
-            if(!(OrderStatus.CREATED).equals(orderResponseDto.orderStatus())){
-                throw new IllegalStateException("Order status is not valid as it is "+ orderResponseDto.orderStatus());
+            if (!(OrderStatus.CREATED).equals(orderResponseDto.orderStatus())) {
+                throw new IllegalStateException("Order status is not valid as it is " + orderResponseDto.orderStatus());
             }
-            if(!orderResponseDto.customerId().equals(createPaymentDto.customerId())){
-                throw new IllegalArgumentException("Order is not associated with given Customer "+createPaymentDto.customerId());
+            if (!orderResponseDto.customerId().equals(createPaymentDto.customerId())) {
+                throw new IllegalArgumentException("Order is not associated with given Customer " + createPaymentDto.customerId());
             }
             Optional<Payment> payment1 = paymentRepository.findByOrderIdAndPaymentStatus(createPaymentDto.orderId(), PaymentStatus.SUCCESS);
-            if (payment1.isPresent()){
-                throw new IllegalStateException("Payment already succeed find payment by id "+payment1.get().getId());
+            if (payment1.isPresent()) {
+                return new ResponseDto(
+                        HttpStatus.CREATED.toString(),
+                        PaymentStatus.SUCCESS.toString()
+                );
             }
-            Payment payment = PaymentMapper.createPaymentDtoToPaymentMapper(createPaymentDto,new Payment());
+            Optional<Payment> paymentCheck = paymentRepository.findByIdempotencyKey(paymentIdempotencyKey);
+            if (paymentCheck.isPresent()) {
+                return new ResponseDto(
+                        HttpStatus.CREATED.toString(),
+                        PaymentStatus.SUCCESS.toString()
+                );
+            }
+            Payment payment = PaymentMapper.createPaymentDtoToPaymentMapper(createPaymentDto, new Payment());
             payment.setAmount(orderResponseDto.totalAmount());
-            payment.setOrderId(orderResponseDto.id());
-            payment.setCustomerId(orderResponseDto.customerId());
+            payment.setIdempotencyKey(paymentIdempotencyKey);
             paymentRepository.save(payment);
             notificationFeignClient.createNotification(
                     new CreateNotificationDto(
@@ -77,7 +85,7 @@ public class PaymentServiceImpl implements IPaymentService {
                             createPaymentDto.orderId().toString()
                     )
             );
-            throw new RuntimeException("Payment cannot created" +e);
+            throw new RuntimeException("Payment cannot created" + e);
         } catch (IllegalArgumentException e) {
             notificationFeignClient.createNotification(
                     new CreateNotificationDto(
@@ -90,8 +98,7 @@ public class PaymentServiceImpl implements IPaymentService {
                     )
             );
             throw new RuntimeException("Payment cannot created");
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             notificationFeignClient.createNotification(
                     new CreateNotificationDto(
                             createPaymentDto.customerId(),
@@ -105,7 +112,7 @@ public class PaymentServiceImpl implements IPaymentService {
             throw new RuntimeException("Payment cannot created");
 
         }
-        return  new ResponseDto(
+        return new ResponseDto(
                 HttpStatus.CREATED.toString(),
                 PaymentStatus.SUCCESS.toString()
         );
@@ -113,7 +120,7 @@ public class PaymentServiceImpl implements IPaymentService {
     }
 
     @Override
-    public ResponseDto createRefundPayment(Long paymentId, Long orderId) {
+    public ResponseDto createRefundPayment(Long paymentId, Long orderId, String refundPaymentIdempotencyKey) {
 
         Payment payment1 = paymentRepository.findByOrderIdAndPaymentStatus(orderId, PaymentStatus.SUCCESS).orElseThrow(
                 ()-> new ResourceNotFoundException("Payment","PaymentId & PaymentStatus_Success",paymentId.toString() +" , "+PaymentStatus.SUCCESS)
@@ -121,6 +128,14 @@ public class PaymentServiceImpl implements IPaymentService {
 
         if(!payment1.getId().equals(paymentId)){
             throw new IllegalArgumentException("Payment is not associated with given Order "+orderId);
+        }
+
+        Optional<Payment> refundPayment = paymentRepository.findByIdempotencyKey(refundPaymentIdempotencyKey);
+        if (refundPayment.isPresent()){
+            return new ResponseDto(
+                    HttpStatus.CREATED.toString(),
+                    PaymentStatus.REFUNDED.toString()
+            );
         }
         Payment payment = PaymentMapper.createPaymentDtoToPaymentMapper(
                 new CreatePaymentDto(
@@ -131,6 +146,7 @@ public class PaymentServiceImpl implements IPaymentService {
                 ,new Payment());
         payment.setAmount(payment1.getAmount());
         payment.setStatus(PaymentStatus.REFUNDED);
+        payment.setIdempotencyKey(refundPaymentIdempotencyKey);
         paymentRepository.save(payment);
         notificationFeignClient.createNotification(
                 new CreateNotificationDto(

@@ -7,6 +7,7 @@ import com.payment.dto.payment.ResponseDto;
 import com.payment.entity.enums.payment.PaymentMethod;
 import com.payment.entity.enums.payment.PaymentStatus;
 import com.payment.service.IPaymentService;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -28,15 +29,25 @@ public class PaymentController {
 
 
     @PostMapping("/payments")
-    ResponseEntity<ResponseDto> createPayment(@RequestBody CreatePaymentDto createPaymentDto){
+    ResponseEntity<ResponseDto> createPayment(
+            @NotNull(message = "paymentIdempotencyKey cannot be null")
+            @RequestParam
+            String paymentIdempotencyKey,
+            @RequestBody CreatePaymentDto createPaymentDto){
 
-        ResponseDto responseDto = paymentService.createPayment(createPaymentDto);
+        ResponseDto responseDto = paymentService.createPayment(paymentIdempotencyKey,createPaymentDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
     }
     @PostMapping("/payments/{paymentId}/{orderId}/refund")
-    ResponseEntity<ResponseDto> createRefundPayment(@PathVariable Long paymentId,@PathVariable Long orderId){
+    ResponseEntity<ResponseDto> createRefundPayment(
+            @NotNull(message = "payment id cannot be null")
+            @PathVariable Long paymentId,
+            @NotNull(message = "orderId cannot be null")
+            @PathVariable Long orderId,
+            @NotBlank(message = "refundPaymentIdempotencyKey cannot be blank empty or null")
+            @RequestParam String refundPaymentIdempotencyKey){
 
-        ResponseDto responseDto = paymentService.createRefundPayment(paymentId,orderId);
+        ResponseDto responseDto = paymentService.createRefundPayment(paymentId,orderId,refundPaymentIdempotencyKey);
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
     }
 

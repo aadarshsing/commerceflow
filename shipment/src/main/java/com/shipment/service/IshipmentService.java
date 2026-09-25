@@ -4,6 +4,8 @@ import com.shipment.dto.shipment.CreateShipmentDto;
 import com.shipment.dto.shipment.ResponseDto;
 import com.shipment.dto.shipment.ShipmentResponseDto;
 import com.shipment.entity.enums.ShipmentStatus;
+import jakarta.validation.constraints.NotBlank;
+import org.springframework.web.bind.annotation.RequestParam;
 
 public interface IshipmentService {
 
@@ -11,9 +13,10 @@ public interface IshipmentService {
     /**
      *
      * @param createShipmentDto
+     * @param shipmentIdempotencyKey
      * @return
      */
-    ResponseDto createShipment(CreateShipmentDto createShipmentDto);
+    ResponseDto createShipment(CreateShipmentDto createShipmentDto, String shipmentIdempotencyKey);
 
     /**
      *

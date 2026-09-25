@@ -84,7 +84,17 @@ public class OrderServiceImpl implements IOrderService {
     }
 
     @Override
-    public OrderResponseDto createOrderFromCart(CartCheckOutRequest cartCheckOutRequest, String correlationId) {
+    public OrderResponseDto createOrderFromCart(CartCheckOutRequest cartCheckOutRequest, String correlationId, String idempotencyKey) {
+
+        Optional<Order> checkOrderExist = orderRepository.findByIdempotencyKey(idempotencyKey);
+        if(checkOrderExist.isPresent()){
+            logger.info("Order Already Existed. correlationId={}, orderId={}, orderStatus={}",
+                    correlationId,
+                    checkOrderExist.get().getId(),
+                    checkOrderExist.get().getOrderStatus());
+
+            return OrderMapper.orderToOrderResponseDtoMapper(checkOrderExist.get());
+        }
 
         logger.info("Starting order creation. correlationId={}, cartId={}, customerId={}, shippingAddressId={}",
                 correlationId,
@@ -189,25 +199,6 @@ public class OrderServiceImpl implements IOrderService {
                             product.id());
                     throw new ResourceNotActiveException("Product", "productId", product.id().toString());
                 }
-
-                logger.debug("Reserving inventory. correlationId={}, productId={}, quantity={}",
-                        correlationId,
-                        product.id(),
-                        cartItem.getQuantity());
-
-                inventoryFeignClient.updateStock(
-                        product.id(),
-                        new UpdateInventoryDto(
-                                cartItem.getQuantity(),
-                                InventoryOperation.RESERVE
-                        )
-                );
-
-                logger.debug("Inventory reserved. correlationId={}, productId={}, quantity={}",
-                        correlationId,
-                        product.id(),
-                        cartItem.getQuantity());
-
                 OrderItem orderItem = OrderMapper.cartItemToOrderItemMapper(cartItem,new OrderItem(),product);
                 orderItems.add(orderItem);
                 orderItem.setOrder(order);
@@ -246,8 +237,47 @@ public class OrderServiceImpl implements IOrderService {
                 correlationId,
                 order.getId());
 
-//         it will call payment then once payment is confirmed that order transition move to confirmed if payment failed
-//         then we will again release inventory product and make transition to order not created
+//
+        try {
+            for(CartItemResponseDto cartItem : cartItemList) {
+                ProductResponseDto product = cartItem.getProductResponseDto();
+
+                logger.debug("Reserving inventory. correlationId={}, productId={}, quantity={}",
+                        correlationId,
+                        product.id(),
+                        cartItem.getQuantity());
+                String inventoryReserveKey =
+                        "RESERVE_ORDER_" + order.getId() + "_PRODUCT_" + product.id();
+                inventoryFeignClient.updateStock(
+                        product.id(),
+                        inventoryReserveKey,
+                        new UpdateInventoryDto(
+                                cartItem.getQuantity(),
+                                InventoryOperation.RESERVE,
+                                order.getId()
+                        )
+                );
+
+                logger.debug("Inventory reserved. correlationId={}, inventoryReserveKey={}, productId={}, quantity={}",
+                        correlationId,
+                        inventoryReserveKey,
+                        product.id(),
+                        cartItem.getQuantity());
+            }
+        } catch (ResourceNotActiveException e) {
+            logger.error("Inventory reservation failed. correlationId={}, orderId={}, error={}",
+                    correlationId,
+                    order.getId(),
+                    e.getMessage(),
+                    e);
+            order.setOrderStatus(OrderStatus.CANCELLED);
+            orderRepository.save(order);
+            logger.warn("Order marked as CANCELLED. correlationId={}, orderId={} as Inventory Reservation failed",
+                    correlationId,
+                    order.getId());
+            throw new RuntimeException(e);
+        }
+
         try {
             notificationFeignClient.createNotification(
                     new CreateNotificationDto(
@@ -263,14 +293,15 @@ public class OrderServiceImpl implements IOrderService {
                     correlationId,
                     order.getId(),
                     PaymentMethod.UPI);
-
+            String paymentIdempotencyKey =
+                    "PAYMENT_ORDER_" + order.getId();
             ResponseDto paymentResponseDto = paymentFeignClient.createPayment(
+                    paymentIdempotencyKey,
                     new CreatePaymentDto(
                             order.getId(),
                             cartCheckOutRequest.customerId(),
                             PaymentMethod.UPI
-                    )
-            ).getBody();
+                    )).getBody();
 
             logger.info("Payment response received. correlationId={}, orderId={}, paymentStatus={}",
                     correlationId,
@@ -284,6 +315,7 @@ public class OrderServiceImpl implements IOrderService {
                             order.getId(),
                             i);
                     paymentResponseDto = paymentFeignClient.createPayment(
+                            paymentIdempotencyKey,
                             new CreatePaymentDto(
                                     order.getId(),
                                     cartCheckOutRequest.customerId(),
@@ -306,14 +338,17 @@ public class OrderServiceImpl implements IOrderService {
                             order.getId(),
                             product.id(),
                             cartItem.getQuantity());
-
+                    String inventoryReserveKey =
+                            "RELEASE_ORDER_" + order.getId() + "_PRODUCT_" + product.id();
                     inventoryFeignClient.updateStock(
                             product.id(),
+                            inventoryReserveKey
+                            ,
                             new UpdateInventoryDto(
                                     cartItem.getQuantity(),
-                                    InventoryOperation.RELEASE
-                            )
-                    );
+                                    InventoryOperation.RELEASE,
+                                    order.getId()
+                            ));
                 }
 
             }
@@ -341,7 +376,9 @@ public class OrderServiceImpl implements IOrderService {
                         correlationId,
                         order.getId(),
                         cartCheckOutRequest.customerId());
+                String shipmentIdempotencyKey = "SHIPMENT_ORDER_" + order.getId();
                 ResponseDto responseDto = shipmentFeignClient.createShipment(
+                        shipmentIdempotencyKey,
                         new CreateShipmentDto(
                                 order.getId(),
                                 cartCheckOutRequest.customerId(),
@@ -391,7 +428,12 @@ public class OrderServiceImpl implements IOrderService {
                         correlationId,
                         order.getId(),
                         paymentSuccessful.paymentId());
-                paymentFeignClient.createRefundPayment(paymentSuccessful.paymentId(),paymentSuccessful.orderId());
+                String refundPaymentIdempotencyKey =
+                        "PAYMENT_ORDER_" + order.getId() + "_REFUND_" + paymentSuccessful.paymentId();
+                paymentFeignClient.createRefundPayment(
+                        paymentSuccessful.paymentId(),
+                        paymentSuccessful.orderId(),
+                        refundPaymentIdempotencyKey);
 
                 logger.info("Payment refund initiated successfully. correlationId={}, orderId={}, paymentId={}",
                         correlationId,
@@ -423,13 +465,16 @@ public class OrderServiceImpl implements IOrderService {
                         order.getId(),
                         product.id(),
                         cartItem.getQuantity());
+                String inventoryReserveKey =
+                        "RELEASE_ORDER_" + order.getId() + "_PRODUCT_" + product.id();
                 inventoryFeignClient.updateStock(
                         product.id(),
+                        inventoryReserveKey,
                         new UpdateInventoryDto(
                                 cartItem.getQuantity(),
-                                InventoryOperation.RELEASE
-                        )
-                );
+                                InventoryOperation.RELEASE,
+                                order.getId()
+                        ));
             }
             throw new RuntimeException(
                     "Unable to process order, order creation deleted and inventory is released and if money if deducted it will be refunded within 24 hours",
@@ -446,7 +491,15 @@ public class OrderServiceImpl implements IOrderService {
     }
 
     @Override
-    public void createOrderFromBuyNow(BuyNowRequest buyNowRequest) {
+    public void createOrderFromBuyNow(String idempotencyKey, BuyNowRequest buyNowRequest) {
+        Optional<Order> checkOrderExist = orderRepository.findByIdempotencyKey(idempotencyKey);
+        if(checkOrderExist.isPresent()){
+            logger.info("Order Already Existed. orderId={}, orderStatus={}",
+                    checkOrderExist.get().getId(),
+                    checkOrderExist.get().getOrderStatus());
+
+            return ;
+        }
 
         Boolean isExist = customerFeignClient.checkCustomerExist(buyNowRequest.customerId()).getBody();
         if(!isExist){
@@ -461,13 +514,16 @@ public class OrderServiceImpl implements IOrderService {
             throw new ResourceNotActiveException("Product", "productId", buyNowRequest.productId().toString());
         }
         try {
+            String inventoryReserveKey =
+                    "RESERVE_ORDER_" + order.getId() + "_PRODUCT_" + product.id();
             inventoryFeignClient.updateStock(
                     product.id(),
+                    inventoryReserveKey,
                     new UpdateInventoryDto(
                             buyNowRequest.quantity(),
-                            InventoryOperation.RESERVE
-                    )
-            );
+                            InventoryOperation.RESERVE,
+                            order.getId()
+                    ));
         } catch (Exception e) {
             throw new IllegalStateException("Something happend wrong. Please try again",e);
         }
@@ -505,36 +561,46 @@ public class OrderServiceImpl implements IOrderService {
                             order.getId().toString()
                     )
             );
+            String paymentIdempotencyKey =
+                    "PAYMENT_ORDER_" + order.getId();
             ResponseDto paymentResponseDto = paymentFeignClient.createPayment(
+                    paymentIdempotencyKey,
                     new CreatePaymentDto(
                             order.getId(),
                             buyNowRequest.customerId(),
                             PaymentMethod.UPI
-                    )
-            ).getBody();
+                    )).getBody();
             if(paymentResponseDto == null){
                 throw  new RuntimeException("Payment ResponseDto is null");
             }
             if (paymentResponseDto.statusMsg().equals(PaymentStatus.FAILED.toString())) {
                 for (int i = 1; i < 6; i++) {
-                    paymentResponseDto = paymentFeignClient.createPayment(new CreatePaymentDto(order.getId(), buyNowRequest.customerId(), PaymentMethod.UPI)).getBody();
-                    if(paymentResponseDto == null){
-                        throw  new RuntimeException("Payment ResponseDto is null");
+                    paymentResponseDto = paymentFeignClient.createPayment(
+                            paymentIdempotencyKey,
+                            new CreatePaymentDto(
+                                    order.getId(),
+                                    buyNowRequest.customerId(),
+                                    PaymentMethod.UPI)).getBody();
+                    if (paymentResponseDto == null) {
+                        throw new RuntimeException("Payment ResponseDto is null");
                     }
-                    if(paymentResponseDto.statusMsg().equals(PaymentStatus.PENDING.toString())
+                    if (paymentResponseDto.statusMsg().equals(PaymentStatus.PENDING.toString())
                             || paymentResponseDto.statusMsg().equals(PaymentStatus.SUCCESS.toString())
                     ) break;
 
                 }
             }
             if(paymentResponseDto.statusMsg().equals(PaymentStatus.FAILED.toString())){
+                String inventoryReleaseKey =
+                        "RELEASE_ORDER_" + order.getId() + "_PRODUCT_" + product.id();
                 inventoryFeignClient.updateStock(
                         product.id(),
+                        inventoryReleaseKey,
                         new UpdateInventoryDto(
                                 buyNowRequest.quantity(),
-                                InventoryOperation.RELEASE
-                        )
-                );
+                                InventoryOperation.RELEASE,
+                                order.getId()
+                        ));
             }
             if(paymentResponseDto.statusMsg().equals(PaymentStatus.SUCCESS.toString())){
 
@@ -550,7 +616,9 @@ public class OrderServiceImpl implements IOrderService {
                                 order.getId().toString()
                         )
                 );
+                String shipmentIdempotencyKey = "SHIPMENT_ORDER_" + order.getId();
                 ResponseDto responseDto = shipmentFeignClient.createShipment(
+                        shipmentIdempotencyKey,
                         new CreateShipmentDto(
                                 order.getId(),
                                 order.getCustomerId(),
@@ -568,7 +636,10 @@ public class OrderServiceImpl implements IOrderService {
                     .stream()
                     .filter(payment -> payment.status() == PaymentStatus.SUCCESS).findFirst().orElse(null);
             if(paymentSuccessful!=null){
-                paymentFeignClient.createRefundPayment(paymentSuccessful.paymentId(),paymentSuccessful.orderId());
+                String refundPaymentIdempotencyKey =
+                        "PAYMENT_ORDER_" + order.getId() + "_REFUND_" + paymentSuccessful.paymentId();
+                paymentFeignClient.createRefundPayment(
+                        paymentSuccessful.paymentId(),paymentSuccessful.orderId(),refundPaymentIdempotencyKey );
             }
             notificationFeignClient.createNotification(
                     new CreateNotificationDto(
@@ -582,13 +653,16 @@ public class OrderServiceImpl implements IOrderService {
             );
             order.setOrderStatus(OrderStatus.CANCELLED);
             orderRepository.save(order);
+            String inventoryReleaseKey =
+                    "RELEASE_ORDER_" + order.getId() + "_PRODUCT_" + product.id();
             inventoryFeignClient.updateStock(
                     product.id(),
+                    inventoryReleaseKey,
                     new UpdateInventoryDto(
                             buyNowRequest.quantity(),
-                            InventoryOperation.RELEASE
-                    )
-            );
+                            InventoryOperation.RELEASE,
+                            order.getId()
+                    ));
             throw new RuntimeException(
                     "Unable to create Payment, order creation deleted and inventory is released and Money Refunded ",
                     e

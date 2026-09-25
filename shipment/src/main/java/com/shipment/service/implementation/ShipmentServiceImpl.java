@@ -34,7 +34,7 @@ public class ShipmentServiceImpl implements IshipmentService {
     ShipmentRepository shipmentRepository;
 
     @Override
-    public ResponseDto createShipment(CreateShipmentDto createShipmentDto) {
+    public ResponseDto createShipment(CreateShipmentDto createShipmentDto, String shipmentIdempotencyKey) {
         Boolean isExist = customerFeignClient.checkCustomerExist(createShipmentDto.customerId()).getBody();
         if(Boolean.FALSE.equals(isExist)){
             throw new ResourceNotFoundException("Customer","customerId",createShipmentDto.customerId().toString());
@@ -44,13 +44,22 @@ public class ShipmentServiceImpl implements IshipmentService {
             throw new ResourceNotFoundException("Order","orderId",createShipmentDto.orderId().toString());
         }
         Optional<Shipment> checkShipment = shipmentRepository.findByOrderId(createShipmentDto.orderId());
-        if(checkShipment.isPresent()){
-            throw new DuplicateResourceException("Shipment already Exist with given Order " + createShipmentDto.orderId());
-        }
+
+        checkShipment.ifPresent(shipment -> new ResponseDto(
+                HttpStatus.CREATED.toString(),
+                shipment.getId().toString()
+        ));
+        Optional<Shipment> optionalShipment = shipmentRepository.findByIdempotencyKey(shipmentIdempotencyKey);
+        optionalShipment.ifPresent(shipment -> new ResponseDto(
+                        HttpStatus.CREATED.toString(),
+                        shipment.getId().toString()
+                )
+        );
         Shipment shipment = ShipmentMapper.createShipmentDtoToShipmentMapper(new Shipment(),createShipmentDto);
         ShippingAddress shippingAddress = ShipmentMapper.orderAddressToShippingAddressMapper(new ShippingAddress(),createShipmentDto.shippingAddress());
         shippingAddress.setShipment(shipment);
         shipment.setShippingAddress(shippingAddress);
+        shipment.setIdempotencyKey(shipmentIdempotencyKey);
         shipmentRepository.save(shipment);
         notificationFeignClient.createNotification(
                 new CreateNotificationDto(

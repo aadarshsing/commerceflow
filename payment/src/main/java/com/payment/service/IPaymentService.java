@@ -14,17 +14,19 @@ public interface IPaymentService {
 
     /**
      *
+     * @param paymentIdempotencyKey
      * @param createPaymentDto
      */
-    ResponseDto createPayment(CreatePaymentDto createPaymentDto);
+    ResponseDto createPayment(String paymentIdempotencyKey,CreatePaymentDto createPaymentDto);
 
     /**
      *
      * @param paymentId
      * @param orderId
+     * @param refundPaymentIdempotencyKey
      * @return
      */
-    ResponseDto createRefundPayment(Long paymentId,Long orderId);
+    ResponseDto createRefundPayment(Long paymentId,Long orderId,String refundPaymentIdempotencyKey);
     /**
      *
      * @param customerId

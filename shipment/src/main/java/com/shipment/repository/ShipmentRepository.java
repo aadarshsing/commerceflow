@@ -13,4 +13,5 @@ public interface ShipmentRepository extends JpaRepository<Shipment,Long> {
     Optional<Shipment> findByCustomerId(Long customerId);
 
     Optional<Shipment> findByOrderId(Long customerId);
+    Optional<Shipment> findByIdempotencyKey(String idempotencyKey);
 }

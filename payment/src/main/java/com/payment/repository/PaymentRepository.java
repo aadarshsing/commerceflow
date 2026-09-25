@@ -34,6 +34,8 @@ public interface PaymentRepository extends JpaRepository<Payment,Long> {
             """)
     Optional<Payment> findByOrderIdAndPaymentStatus(Long orderId, PaymentStatus status);
 
+    Optional<Payment> findByIdempotencyKey(String idempotencyKey);
+
     Optional<Payment> findByIdAndStatus(Long id,PaymentStatus status);
 
 }

@@ -7,6 +7,7 @@ import com.shipment.dto.shipment.ShipmentResponseDto;
 import com.shipment.entity.enums.ShipmentStatus;
 import com.shipment.service.IshipmentService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -24,8 +25,11 @@ public class ShipmentController {
     IshipmentService ishipmentService;
 
     @PostMapping("/shipments")
-    public ResponseEntity<ResponseDto> createShipment(@Valid @RequestBody CreateShipmentDto createShipmentDto){
-        ResponseDto responseDto = ishipmentService.createShipment(createShipmentDto);
+    public ResponseEntity<ResponseDto> createShipment(
+            @NotBlank(message = "shipmentIdempotencyKey cannot be null, empty or blank")
+            @RequestParam String shipmentIdempotencyKey,
+            @Valid @RequestBody CreateShipmentDto createShipmentDto){
+        ResponseDto responseDto = ishipmentService.createShipment(createShipmentDto,shipmentIdempotencyKey);
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
     }
     @GetMapping("/shipments/{shipmentId}")
