@@ -39,7 +39,7 @@ public class Payment extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     private PaymentMethod paymentMethod;
-    @Column(nullable = false)
+    @Column(nullable = false,unique = true)
     private String idempotencyKey;
     @Column(
             unique = true

@@ -31,7 +31,7 @@ public class Shipment {
     )
     private String trackingNumber;
     private String carrier;
-    @Column(nullable = false)
+    @Column(nullable = false,unique = true)
     private String idempotencyKey;
     @Enumerated(EnumType.STRING)
     private ShipmentStatus status;
