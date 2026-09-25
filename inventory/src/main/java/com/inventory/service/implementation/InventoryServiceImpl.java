@@ -63,7 +63,7 @@ public class InventoryServiceImpl implements IInventoryService {
 
     @Transactional
     @Override
-    public InventoryResponseDto updateInventory(Long productId, String idempotencyKey, UpdateInventoryDto updateInventoryDto) {
+    public InventoryResponseDto updateInventory(Long productId, String idempotencyKey, Boolean callFromOrder, UpdateInventoryDto updateInventoryDto) {
         Inventory inventory = inventoryRepository.findByProductId(productId).orElseThrow(
                 () -> new ResourceNotFoundException("Inventory", "productId", productId.toString())
         );
@@ -117,10 +117,12 @@ public class InventoryServiceImpl implements IInventoryService {
                 inventory.setInventoryStatus(InventoryStatus.LOW_STOCK);
             }
         }
-        InventoryOperations inventoryOperationsToSave = InventoryOperationMapper.updateInventoryDtoToInventoryOperation(updateInventoryDto, new InventoryOperations());
-        inventoryOperationsToSave.setProductId(productId);
-        inventoryOperationsToSave.setIdempotencyKey(idempotencyKey);
-        inventoryOperationsRepository.save(inventoryOperationsToSave);
+        if(callFromOrder){
+            InventoryOperations inventoryOperationsToSave = InventoryOperationMapper.updateInventoryDtoToInventoryOperation(updateInventoryDto, new InventoryOperations());
+            inventoryOperationsToSave.setProductId(productId);
+            inventoryOperationsToSave.setIdempotencyKey(idempotencyKey);
+            inventoryOperationsRepository.save(inventoryOperationsToSave);
+        }
         inventory = inventoryRepository.save(inventory);
         return InventoryMapper.inventoryToResponseDtoMapper(inventory);
 

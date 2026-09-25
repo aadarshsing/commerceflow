@@ -4,6 +4,7 @@ package com.inventory.service;
 import com.inventory.dto.inventory.CreateInventoryDto;
 import com.inventory.dto.inventory.InventoryResponseDto;
 import com.inventory.dto.inventory.UpdateInventoryDto;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -27,10 +28,11 @@ public interface IInventoryService {
      *
      * @param productId
      * @param idempotencyKey
+     * @param callFromOrder
      * @param updateInventoryDto
      * @return -- it return the updated inventory response object
      */
-    InventoryResponseDto updateInventory(Long productId,String idempotencyKey, UpdateInventoryDto updateInventoryDto);
+    InventoryResponseDto updateInventory(Long productId,String idempotencyKey,Boolean callFromOrder, UpdateInventoryDto updateInventoryDto);
 
     /**
      *

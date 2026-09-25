@@ -9,6 +9,7 @@ import com.inventory.dto.inventory.UpdateInventoryDto;
 import com.inventory.service.IInventoryService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,9 +55,12 @@ public class InventoryController {
             @NotNull(message = "productId cannot be null")
             @Positive(message = "productId must be greater than 0")
             @PathVariable Long productId,
+            @NotBlank(message = "idempotencyKey cannot be null,empty or Blank")
             @RequestParam String idempotencyKey,
+            @NotNull(message = "callFromOrder cannot be null")
+            @RequestParam Boolean callFromOrder,
             @Valid @RequestBody UpdateInventoryDto updateInventoryDto){
-        InventoryResponseDto inventoryResponseDto = inventoryService.updateInventory(productId,idempotencyKey, updateInventoryDto);
+        InventoryResponseDto inventoryResponseDto = inventoryService.updateInventory(productId,idempotencyKey,callFromOrder, updateInventoryDto);
         return ResponseEntity.ok(inventoryResponseDto);
     }
 

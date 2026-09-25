@@ -83,6 +83,7 @@ public class OrderServiceImpl implements IOrderService {
 
     }
 
+
     @Override
     public OrderResponseDto createOrderFromCart(CartCheckOutRequest cartCheckOutRequest, String correlationId, String idempotencyKey) {
 
@@ -208,6 +209,7 @@ public class OrderServiceImpl implements IOrderService {
             throw new IllegalStateException("something happened wrong.Please try again", e);
         }
 
+        order.setIdempotencyKey(idempotencyKey);
         order.setOrderItems(orderItems);
         order.setTotalAmount(totalAmount);
         logger.info("Saving order. correlationId={}, customerId={}, totalAmount={}, itemCount={}",
@@ -237,7 +239,8 @@ public class OrderServiceImpl implements IOrderService {
                 correlationId,
                 order.getId());
 
-//
+        //After Order Saved Process
+        List<CartItemResponseDto> reservedItems = new ArrayList<>();
         try {
             for(CartItemResponseDto cartItem : cartItemList) {
                 ProductResponseDto product = cartItem.getProductResponseDto();
@@ -251,12 +254,15 @@ public class OrderServiceImpl implements IOrderService {
                 inventoryFeignClient.updateStock(
                         product.id(),
                         inventoryReserveKey,
+                        true,
                         new UpdateInventoryDto(
                                 cartItem.getQuantity(),
                                 InventoryOperation.RESERVE,
                                 order.getId()
                         )
                 );
+                //will be used while compensating
+                reservedItems.add(cartItem);
 
                 logger.debug("Inventory reserved. correlationId={}, inventoryReserveKey={}, productId={}, quantity={}",
                         correlationId,
@@ -264,12 +270,30 @@ public class OrderServiceImpl implements IOrderService {
                         product.id(),
                         cartItem.getQuantity());
             }
-        } catch (ResourceNotActiveException e) {
+        } catch (Exception e) {
             logger.error("Inventory reservation failed. correlationId={}, orderId={}, error={}",
                     correlationId,
                     order.getId(),
                     e.getMessage(),
                     e);
+
+            for(CartItemResponseDto cartItem: reservedItems){
+                ProductResponseDto productResponseDto = cartItem.getProductResponseDto();
+                String releaseKey = "RELEASE_ORDER_" + order.getId() + "_PRODUCT_" + productResponseDto.id();
+                inventoryFeignClient.updateStock(
+                        productResponseDto.id(),
+                        releaseKey,
+                        Boolean.TRUE,
+                        new UpdateInventoryDto(
+                                cartItem.getQuantity(),
+                                InventoryOperation.RELEASE,
+                                order.getId()
+                        )
+                );
+
+
+
+            }
             order.setOrderStatus(OrderStatus.CANCELLED);
             orderRepository.save(order);
             logger.warn("Order marked as CANCELLED. correlationId={}, orderId={} as Inventory Reservation failed",
@@ -342,8 +366,8 @@ public class OrderServiceImpl implements IOrderService {
                             "RELEASE_ORDER_" + order.getId() + "_PRODUCT_" + product.id();
                     inventoryFeignClient.updateStock(
                             product.id(),
-                            inventoryReserveKey
-                            ,
+                            inventoryReserveKey,
+                            Boolean.TRUE,
                             new UpdateInventoryDto(
                                     cartItem.getQuantity(),
                                     InventoryOperation.RELEASE,
@@ -454,7 +478,7 @@ public class OrderServiceImpl implements IOrderService {
                             order.getId().toString()
                     )
             );
-            for(CartItemResponseDto cartItem : cartItemList) {
+            for(CartItemResponseDto cartItem : reservedItems) {
                 ProductResponseDto product = cartItem.getProductResponseDto();
 
                 if (product.status().equals(ProductStatus.INACTIVE)) {
@@ -470,6 +494,7 @@ public class OrderServiceImpl implements IOrderService {
                 inventoryFeignClient.updateStock(
                         product.id(),
                         inventoryReserveKey,
+                        Boolean.TRUE,
                         new UpdateInventoryDto(
                                 cartItem.getQuantity(),
                                 InventoryOperation.RELEASE,
@@ -489,7 +514,6 @@ public class OrderServiceImpl implements IOrderService {
         return OrderMapper.orderToOrderResponseDtoMapper(order);
 
     }
-
     @Override
     public void createOrderFromBuyNow(String idempotencyKey, BuyNowRequest buyNowRequest) {
         Optional<Order> checkOrderExist = orderRepository.findByIdempotencyKey(idempotencyKey);
@@ -519,6 +543,7 @@ public class OrderServiceImpl implements IOrderService {
             inventoryFeignClient.updateStock(
                     product.id(),
                     inventoryReserveKey,
+                    Boolean.TRUE,
                     new UpdateInventoryDto(
                             buyNowRequest.quantity(),
                             InventoryOperation.RESERVE,
@@ -536,6 +561,7 @@ public class OrderServiceImpl implements IOrderService {
         order.setOrderItems(List.of(orderItem));
         order.setCustomerId(buyNowRequest.customerId());
         order.setOrderStatus(OrderStatus.CREATED);
+        order.setIdempotencyKey(idempotencyKey);
         orderRepository.save(order);
 
         notificationFeignClient.createNotification(
@@ -596,6 +622,7 @@ public class OrderServiceImpl implements IOrderService {
                 inventoryFeignClient.updateStock(
                         product.id(),
                         inventoryReleaseKey,
+                        Boolean.TRUE,
                         new UpdateInventoryDto(
                                 buyNowRequest.quantity(),
                                 InventoryOperation.RELEASE,
@@ -658,6 +685,7 @@ public class OrderServiceImpl implements IOrderService {
             inventoryFeignClient.updateStock(
                     product.id(),
                     inventoryReleaseKey,
+                    Boolean.TRUE,
                     new UpdateInventoryDto(
                             buyNowRequest.quantity(),
                             InventoryOperation.RELEASE,

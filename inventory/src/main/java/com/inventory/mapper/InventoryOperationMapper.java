@@ -8,7 +8,8 @@ public class InventoryOperationMapper {
     public static InventoryOperations updateInventoryDtoToInventoryOperation(UpdateInventoryDto updateInventoryDto,InventoryOperations inventoryOperations){
 
         inventoryOperations.setOperationType(updateInventoryDto.operation());
-        inventoryOperations.setProductId(updateInventoryDto.OrderId());
+        inventoryOperations.setProductId(updateInventoryDto.orderId());
+        inventoryOperations.setOrderId(updateInventoryDto.orderId());
         return inventoryOperations;
     }
 }
