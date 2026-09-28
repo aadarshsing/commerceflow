@@ -7,18 +7,18 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class FeignRetryConfig {
+public class PaymentRetryConfig {
 
     @Bean
-    public Retryer retryer(){
+    public Retryer paymentRetryer(){
         return new Retryer.Default(
-                200,
-                1000,
+                500,
+                2000,
                 3
         );
     }
     @Bean
-    public ErrorDecoder errorDecoder(){
+    public ErrorDecoder paymentErrorDecoder(){
         return new RetryableErrorDecoder();
     }
 }

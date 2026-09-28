@@ -3,7 +3,6 @@ package com.order.config.feign;
 import feign.Response;
 import feign.RetryableException;
 import feign.codec.ErrorDecoder;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;

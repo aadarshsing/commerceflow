@@ -16,7 +16,9 @@ import com.cart.repository.CartRepository;
 import com.cart.service.IcartService;
 import com.cart.service.client.CatalogFeignClient;
 import com.cart.service.client.CustomerFeignClient;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,12 +29,14 @@ import java.util.Optional;
 
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class CartServiceImpl implements IcartService {
 
-    CartRepository cartRepository;
-    CustomerFeignClient customerFeignClient;
-    CatalogFeignClient catalogFeignClient;
+    Logger logger = LoggerFactory.getLogger(CartServiceImpl.class);
+
+    private final CartRepository cartRepository;
+    private final CustomerFeignClient customerFeignClient;
+    private final CatalogFeignClient catalogFeignClient;
 
     @Override
     public void createCart(CreateCartDto createCartDto) {
@@ -55,6 +59,11 @@ public class CartServiceImpl implements IcartService {
         Cart cart = cartRepository.findByCustomerId(customerId).orElseThrow(
                 ()-> new ResourceNotFoundException("Cart","customerId",customerId.toString())
         );
+        logger.debug(
+                "Inside Cart Service: Cart fetched successfully using customerId={}, cartId={}",
+                customerId,
+                cart.getId()
+        );
         CartResponseDto cartResponseDto = CartMapper.CartToDtoMapper(cart);
         List<CartItemResponseDto> cartItemList = new ArrayList<>();
         for(CartItem cartItem : cart.getItems()){
@@ -73,9 +82,9 @@ public class CartServiceImpl implements IcartService {
     }
     @Transactional
     @Override
-    public ResponseDto deleteCart(Long cartId) {
-        Cart cart = cartRepository.findById(cartId).orElseThrow(
-                ()-> new ResourceNotFoundException("Cart","cartId",cartId.toString())
+    public ResponseDto deleteCart(Long customerId) {
+        Cart cart = cartRepository.findByCustomerId(customerId).orElseThrow(
+                ()-> new ResourceNotFoundException("Cart","customerId", customerId.toString())
         );
         cart.getItems().clear();
         return new ResponseDto(

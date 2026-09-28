@@ -20,9 +20,9 @@ public interface CartFeignClient {
     ResponseEntity<CartResponseDto> getCart(
             @NotNull(message = "cartId cannot be null")
             @PathVariable Long cartId);
-    @DeleteMapping("api/carts/{cartId}")
+    @DeleteMapping("api/carts/{customerId}")
     ResponseEntity<ResponseDto> deleteCartItems(
             @NotNull(message = "CartId cannot be null")
-            @PathVariable Long cartId
+            @PathVariable Long customerId
     );
 }

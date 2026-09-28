@@ -1,8 +1,8 @@
 package com.payment.mapper;
 
 
-import com.payment.dto.payment.CreatePaymentDto;
-import com.payment.dto.payment.PaymentResponseDto;
+import com.payment.dto.CreatePaymentDto;
+import com.payment.dto.PaymentResponseDto;
 import com.payment.entity.Payment;
 import com.payment.entity.enums.payment.PaymentStatus;
 

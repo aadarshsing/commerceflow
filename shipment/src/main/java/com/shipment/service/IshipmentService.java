@@ -1,11 +1,10 @@
 package com.shipment.service;
 
-import com.shipment.dto.shipment.CreateShipmentDto;
-import com.shipment.dto.shipment.ResponseDto;
-import com.shipment.dto.shipment.ShipmentResponseDto;
+import com.shipment.dto.CreateShipmentDto;
+import com.shipment.dto.ResponseDto;
+import com.shipment.dto.ShipmentResponseDto;
 import com.shipment.entity.enums.ShipmentStatus;
-import jakarta.validation.constraints.NotBlank;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 public interface IshipmentService {
 
@@ -43,9 +42,10 @@ public interface IshipmentService {
      *
      * @param status
      * @param shipmentId
+     * @param correlationId
      * @return
      */
-    ShipmentResponseDto updateShipmentStatus(ShipmentStatus status,Long shipmentId);
+    ShipmentResponseDto updateShipmentStatus(ShipmentStatus status, Long shipmentId, String correlationId);
 
     /**
      *

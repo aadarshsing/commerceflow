@@ -13,6 +13,6 @@ public record UpdateInventoryDto(
         @NotNull(message = "Operation cannot be empty")
         InventoryOperation operation,
         @NotNull(message = "OrderId cannot be null")
-        Long OrderId
+        Long orderId
 ) {
 }

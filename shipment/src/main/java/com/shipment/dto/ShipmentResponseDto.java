@@ -1,7 +1,5 @@
-package com.shipment.dto.shipment;
+package com.shipment.dto;
 
-import com.shipment.dto.order.OrderAddressResponseDto;
-import com.shipment.entity.ShippingAddress;
 import com.shipment.entity.enums.ShipmentStatus;
 
 import java.time.Instant;

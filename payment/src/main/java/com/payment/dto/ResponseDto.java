@@ -1,4 +1,4 @@
-package com.payment.dto.payment;
+package com.payment.dto;
 
 import com.payment.entity.enums.payment.PaymentStatus;
 

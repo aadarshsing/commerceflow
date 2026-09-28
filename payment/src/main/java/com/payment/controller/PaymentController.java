@@ -1,9 +1,9 @@
 package com.payment.controller;
 
 
-import com.payment.dto.payment.CreatePaymentDto;
-import com.payment.dto.payment.PaymentResponseDto;
-import com.payment.dto.payment.ResponseDto;
+import com.payment.dto.CreatePaymentDto;
+import com.payment.dto.PaymentResponseDto;
+import com.payment.dto.ResponseDto;
 import com.payment.entity.enums.payment.PaymentMethod;
 import com.payment.entity.enums.payment.PaymentStatus;
 import com.payment.service.IPaymentService;
@@ -31,7 +31,7 @@ public class PaymentController {
     @PostMapping("/payments")
     ResponseEntity<ResponseDto> createPayment(
             @NotNull(message = "paymentIdempotencyKey cannot be null")
-            @RequestParam
+            @RequestHeader("idempotency-key")
             String paymentIdempotencyKey,
             @RequestBody CreatePaymentDto createPaymentDto){
 

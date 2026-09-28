@@ -1,9 +1,9 @@
 package com.payment.service;
 
 
-import com.payment.dto.payment.CreatePaymentDto;
-import com.payment.dto.payment.PaymentResponseDto;
-import com.payment.dto.payment.ResponseDto;
+import com.payment.dto.CreatePaymentDto;
+import com.payment.dto.PaymentResponseDto;
+import com.payment.dto.ResponseDto;
 import com.payment.entity.enums.payment.PaymentMethod;
 import com.payment.entity.enums.payment.PaymentStatus;
 import org.springframework.data.domain.Page;

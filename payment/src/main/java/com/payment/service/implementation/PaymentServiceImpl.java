@@ -1,8 +1,8 @@
 package com.payment.service.implementation;
 
-import com.payment.dto.payment.CreatePaymentDto;
-import com.payment.dto.payment.PaymentResponseDto;
-import com.payment.dto.payment.ResponseDto;
+import com.payment.dto.CreatePaymentDto;
+import com.payment.dto.PaymentResponseDto;
+import com.payment.dto.ResponseDto;
 import com.payment.entity.Payment;
 import com.payment.entity.enums.payment.PaymentMethod;
 import com.payment.entity.enums.payment.PaymentStatus;
@@ -12,11 +12,13 @@ import com.payment.repository.PaymentRepository;
 import com.payment.service.IPaymentService;
 import com.payment.service.client.NotificationFeignClient;
 import com.payment.service.client.OrderFeignClient;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.commerceflow.dto.notification.CreateNotificationDto;
 import org.commerceflow.dto.order.OrderResponseDto;
 import org.commerceflow.enums.notification.NotificationType;
 import org.commerceflow.enums.order.OrderStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -29,15 +31,21 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class PaymentServiceImpl implements IPaymentService {
+    private final Logger  logger = LoggerFactory.getLogger(PaymentServiceImpl.class);
+    private  final PaymentRepository paymentRepository;
+    private final OrderFeignClient orderFeignClient;
+    private final NotificationFeignClient notificationFeignClient;
 
-    PaymentRepository paymentRepository;
-    OrderFeignClient orderFeignClient;
-    NotificationFeignClient notificationFeignClient;
+
     @Override
     public ResponseDto createPayment(String paymentIdempotencyKey, CreatePaymentDto createPaymentDto) {
-
+        logger.debug(
+                "Inside Payment Service: Creating payment for orderId={}, customerId={}",
+                createPaymentDto.orderId(),
+                createPaymentDto.customerId()
+        );
         try {
             OrderResponseDto orderResponseDto = orderFeignClient.getOrder(createPaymentDto.orderId()).getBody();
             if (!(OrderStatus.CREATED).equals(orderResponseDto.orderStatus())) {
@@ -47,75 +55,110 @@ public class PaymentServiceImpl implements IPaymentService {
                 throw new IllegalArgumentException("Order is not associated with given Customer " + createPaymentDto.customerId());
             }
             Optional<Payment> payment1 = paymentRepository.findByOrderIdAndPaymentStatus(createPaymentDto.orderId(), PaymentStatus.SUCCESS);
-            if (payment1.isPresent()) {
-                return new ResponseDto(
-                        HttpStatus.CREATED.toString(),
-                        PaymentStatus.SUCCESS.toString()
-                );
-            }
             Optional<Payment> paymentCheck = paymentRepository.findByIdempotencyKey(paymentIdempotencyKey);
-            if (paymentCheck.isPresent()) {
-                return new ResponseDto(
-                        HttpStatus.CREATED.toString(),
-                        PaymentStatus.SUCCESS.toString()
+            Payment payment = PaymentMapper.createPaymentDtoToPaymentMapper(createPaymentDto, new Payment());
+            if (payment1.isPresent()) {
+                payment = payment1.get();
+                logger.debug(
+                        "Inside Payment Service: Successful payment already exists for orderId={}",
+                        createPaymentDto.orderId()
                 );
             }
-            Payment payment = PaymentMapper.createPaymentDtoToPaymentMapper(createPaymentDto, new Payment());
-            payment.setAmount(orderResponseDto.totalAmount());
-            payment.setIdempotencyKey(paymentIdempotencyKey);
-            paymentRepository.save(payment);
-            notificationFeignClient.createNotification(
-                    new CreateNotificationDto(
-                            createPaymentDto.customerId(),
-                            NotificationType.PAYMENT_SUCCESS,
-                            "SMS",
-                            "Order",
-                            "Payment is Success",
-                            createPaymentDto.orderId().toString()
-                    )
+            else if (paymentCheck.isPresent()) {
+                payment = paymentCheck.get();
+                logger.debug(
+                        "Inside Payment Service: Duplicate payment request detected for idempotencyKey={}",
+                        paymentIdempotencyKey
+                );
+            }
+            else{
+                payment.setAmount(orderResponseDto.totalAmount());
+                payment.setIdempotencyKey(paymentIdempotencyKey);
+                payment = paymentRepository.save(payment);
+                logger.debug(
+                        "Inside Payment Service: Payment created successfully for orderId={}, paymentId={}",
+                        createPaymentDto.orderId(),
+                        payment.getId()
+                );
+                notificationFeignClient.createNotification(
+                        new CreateNotificationDto(
+                                createPaymentDto.customerId(),
+                                NotificationType.PAYMENT_SUCCESS,
+                                "SMS",
+                                "Order",
+                                "Payment is Success",
+                                createPaymentDto.orderId().toString()
+                        )
+                );
+            }
+            PaymentResponseDto paymentResponseDto = PaymentMapper.paymentToPaymentResponseDto(payment);
+            String idempotencyKey ="ORDER_CONFIRMATION_ORDER_ID_" +orderResponseDto.id() + "_PAYMENT_ID_"+payment.getId()+"_"+payment.getStatus();
+            logger.debug(
+                    "Inside Payment Service: Calling orderService for OrderConfirmation, orderId={},paymentId={}, paymentStatus={}",
+                    createPaymentDto.orderId(),
+                    payment.getId(),
+                    payment.getStatus()
+
+            );
+            orderFeignClient.confirmOrCancelOrder(createPaymentDto.orderId(),paymentResponseDto,idempotencyKey).getBody();
+            return new ResponseDto(
+                    HttpStatus.CREATED.toString(),
+                    PaymentStatus.SUCCESS.toString()
             );
         } catch (IllegalStateException e) {
+            logger.error(
+                    "Inside Payment Service: Payment failed due to invalid order state, orderId={}, message={}",
+                    createPaymentDto.orderId(),
+                    e.getMessage()
+            );
             notificationFeignClient.createNotification(
                     new CreateNotificationDto(
                             createPaymentDto.customerId(),
                             NotificationType.PAYMENT_FAILED,
                             "SMS",
                             "Order",
-                            "Payment Failed because" + e,
+                            "Payment Failed ",
                             createPaymentDto.orderId().toString()
                     )
             );
             throw new RuntimeException("Payment cannot created" + e);
         } catch (IllegalArgumentException e) {
+            logger.error(
+                    "Inside Payment Service: Payment failed due to invalid request, orderId={}, message={}",
+                    createPaymentDto.orderId(),
+                    e.getMessage()
+            );
             notificationFeignClient.createNotification(
                     new CreateNotificationDto(
                             createPaymentDto.customerId(),
                             NotificationType.PAYMENT_FAILED,
                             "SMS",
                             "Order",
-                            "Payment Failed because" + e,
+                            "Payment Failed",
                             createPaymentDto.orderId().toString()
                     )
             );
             throw new RuntimeException("Payment cannot created");
         } catch (Exception e) {
+            logger.error(
+                    "Inside Payment Service: Payment creation failed, orderId={}, message={}",
+                    createPaymentDto.orderId(),
+                    e.getMessage(),
+                    e
+            );
             notificationFeignClient.createNotification(
                     new CreateNotificationDto(
                             createPaymentDto.customerId(),
                             NotificationType.PAYMENT_FAILED,
                             "SMS",
                             "Order",
-                            "Payment Failed because" + e,
+                            "Payment Failed",
                             createPaymentDto.orderId().toString()
                     )
             );
             throw new RuntimeException("Payment cannot created");
 
         }
-        return new ResponseDto(
-                HttpStatus.CREATED.toString(),
-                PaymentStatus.SUCCESS.toString()
-        );
 
     }
 
@@ -155,7 +198,7 @@ public class PaymentServiceImpl implements IPaymentService {
                         "SMS",
                         "Order",
                         "Payment is Refunded to original Payment Account",
-                        paymentId.toString()
+                        orderId.toString()
                 )
         );
         return  new ResponseDto(

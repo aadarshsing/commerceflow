@@ -2,6 +2,7 @@ package com.order.client;
 
 
 import com.order.config.feign.FeignRetryConfig;
+import com.order.config.feign.PaymentRetryConfig;
 import com.order.dto.ResponseDto;
 import com.order.client.fallback.PaymentFallBack;
 import jakarta.validation.constraints.NotBlank;
@@ -15,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @FeignClient(name = "payment"
-        ,configuration = FeignRetryConfig.class
+        ,configuration = PaymentRetryConfig.class
         ,fallback = PaymentFallBack.class)
 public interface PaymentFeignClient {
 
@@ -25,11 +26,6 @@ public interface PaymentFeignClient {
             @RequestParam
             String paymentIdempotencyKey,
             @RequestBody CreatePaymentDto createPaymentDto);
-
-    @GetMapping("api/orders/{orderId}/payments")
-    ResponseEntity<List<PaymentResponseDto>> getPaymentByOrder(
-            @NotNull(message = "order id cannot be null")
-            @PathVariable Long orderId);
 
     @PostMapping("api/payments/{paymentId}/{orderId}/refund")
     ResponseEntity<ResponseDto> createRefundPayment(

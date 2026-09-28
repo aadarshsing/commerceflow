@@ -14,17 +14,20 @@ import com.customer.repository.CustomerRepository;
 import com.customer.service.IcustomerService;
 import com.customer.service.client.CartFeignClient;
 import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.Objects;
 import java.util.Optional;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class CustomerServiceImpl implements IcustomerService {
-
-    CustomerRepository customerRepository;
-    CartFeignClient cartFeignClient;
+    private final Logger logger = LoggerFactory.getLogger(CustomerServiceImpl.class);
+    private final CustomerRepository customerRepository;
+    private final CartFeignClient cartFeignClient;
 
     @Override
     public void createCustomer(CreateCustomerRequest customerRequest) {
@@ -97,11 +100,23 @@ public class CustomerServiceImpl implements IcustomerService {
     @Override
     public Boolean checkCustomer(Long customerId) {
         Optional<Customer> customer = customerRepository.findById(customerId);
-        if(customer.isPresent() && customer.get().getCustomerStatus().equals(CustomerStatus.ACTIVE)){
-            return  Boolean.TRUE;
+        
+        if (customer.isPresent()
+                && customer.get().getCustomerStatus().equals(CustomerStatus.ACTIVE)) {
+
+            logger.debug(
+                    "Inside Customer Service: Customer verified successfully, customerId={}, status=ACTIVE",
+                    customerId
+            );
+
+            return Boolean.TRUE;
         }
-        else{
-            return Boolean.FALSE;
-        }
+        logger.debug(
+                "Inside Customer Service: Customer verification failed, customerId={}, customerExists={}, status={}",
+                customerId,
+                customer.isPresent(),
+                customer.map(Customer::getCustomerStatus).orElse(null)
+        );
+        return Boolean.FALSE;
     }
 }

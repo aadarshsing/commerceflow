@@ -17,7 +17,7 @@ public class CartFallBack implements CartFeignClient {
     }
 
     @Override
-    public ResponseEntity<ResponseDto> deleteCartItems(Long cartId) {
+    public ResponseEntity<ResponseDto> deleteCartItems(Long customerId) {
         throw new ServiceUnavailableException(
                 "Cart Service is currently unavailable"
         );

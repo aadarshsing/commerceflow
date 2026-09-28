@@ -5,6 +5,8 @@ import com.order.dto.BuyNowRequest;
 import com.order.dto.CartCheckOutRequest;
 import com.order.dto.OrderResponseDto;
 import com.order.entity.enums.OrderStatus;
+import org.commerceflow.dto.payment.PaymentResponseDto;
+import org.commerceflow.enums.payment.PaymentStatus;
 import org.springframework.data.domain.Page;
 
 public interface IOrderService {
@@ -40,6 +42,14 @@ public interface IOrderService {
      */
     void createOrderFromBuyNow(String idempotencyKey,BuyNowRequest buyNowRequest);
 
+    /**
+     *
+     * @param orderId
+     * @param paymentResponseDto
+     * @param idempotencyKey
+     * @return - it return orderResponseDto
+     */
+    OrderResponseDto makeOrderConfirmOrCancel(Long orderId, PaymentResponseDto paymentResponseDto, String idempotencyKey);
     /**
      *
      * @param orderId

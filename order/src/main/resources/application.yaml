@@ -25,6 +25,36 @@ spring:
         enabled: true
         alphanumeric-ids:
           enabled: true
+      client:
+        config:
+          cart:
+            connectTimeout: 500
+            readTimeout: 1000
+
+          catalog:
+            connectTimeout: 500
+            readTimeout: 1000
+
+          customer:
+            connectTimeout: 500
+            readTimeout: 1000
+
+          payment:
+            connectTimeout: 500
+            readTimeout: 1000
+
+          inventory:
+            connectTimeout: 500
+            readTimeout: 1000
+
+          shipment:
+            connectTimeout: 500
+            readTimeout: 1000
+
+          notification:
+            connectTimeout: 500
+            readTimeout: 1000
+
 eureka:
   instance:
     preferIpAddress: true

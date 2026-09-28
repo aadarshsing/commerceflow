@@ -1,11 +1,11 @@
 package com.shipment.service.client;
 
-import com.shipment.dto.notification.CreateNotificationDto;
-import com.shipment.dto.notification.NotificationResponseDto;
-import com.shipment.dto.notification.UpdateNotificationDto;
-import com.shipment.dto.shipment.ResponseDto;
+import com.shipment.dto.ResponseDto;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import org.commerceflow.dto.notification.CreateNotificationDto;
+import org.commerceflow.dto.notification.NotificationResponseDto;
+import org.commerceflow.dto.notification.UpdateNotificationDto;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PatchMapping;

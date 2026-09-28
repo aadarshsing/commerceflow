@@ -117,6 +117,21 @@ public class InventoryServiceImpl implements IInventoryService {
                 inventory.setInventoryStatus(InventoryStatus.LOW_STOCK);
             }
         }
+        else if (updateInventoryDto.operation().equals(InventoryOperation.REMOVE_RESERVED)) {
+
+            if (updateInventoryDto.quantity() > inventory.getReservedQuantity()) {
+                throw new ResourceNotAvailableException(
+                        "Inventory",
+                        "ReserveQuantity",
+                        String.valueOf(inventory.getReservedQuantity())
+                );
+            }
+
+            int reservedQuantity =
+                    inventory.getReservedQuantity() - updateInventoryDto.quantity();
+
+            inventory.setReservedQuantity(reservedQuantity);
+        }
         if(callFromOrder){
             InventoryOperations inventoryOperationsToSave = InventoryOperationMapper.updateInventoryDtoToInventoryOperation(updateInventoryDto, new InventoryOperations());
             inventoryOperationsToSave.setProductId(productId);

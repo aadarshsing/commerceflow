@@ -8,7 +8,9 @@ import com.order.dto.ResponseDto;
 import com.order.entity.enums.OrderStatus;
 import com.order.service.IOrderService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import org.commerceflow.dto.payment.PaymentResponseDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,7 +32,7 @@ public class OrderController {
     IOrderService orderService;
 
     @PostMapping("/orders/checkout")
-    public ResponseEntity<ResponseDto>  createOrderFromCart(
+    public ResponseEntity<OrderResponseDto>  createOrderFromCart(
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             @RequestHeader("commerceflow-correlation-id") String correlationId,
             @Valid @RequestBody CartCheckOutRequest cartCheckOutRequest){
@@ -47,10 +49,8 @@ public class OrderController {
         logger.info("OrderService.createOrderFromCart completed. correlationId={}, orderResponseDto={}",
                 correlationId,
                 orderResponseDto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(new ResponseDto(
-                HttpStatus.CREATED.toString(),
-                "Order is created Successfully"
-        ));
+
+        return ResponseEntity.ok(orderResponseDto);
     }
 
     @PostMapping("/orders/buy-now")
@@ -63,6 +63,21 @@ public class OrderController {
                 HttpStatus.CREATED.toString(),
                 "Order is created Successfully"
         ));
+    }
+
+    @PostMapping("/orders/{orderId}/confirm-cancel")
+    public ResponseEntity<OrderResponseDto> confirmOrCancelOrder(
+            @NotNull(message = "orderId cannot be null")
+            @PathVariable
+            Long orderId,
+            @Valid @RequestBody
+            PaymentResponseDto paymentResponseDto,
+            @NotBlank(message = "idempotencyKey cannot be null, empty or blank")
+            @RequestParam
+            String idempotencyKey
+    ){
+        OrderResponseDto orderResponseDto = orderService.makeOrderConfirmOrCancel(orderId,paymentResponseDto,idempotencyKey);
+        return ResponseEntity.ok(orderResponseDto);
     }
     @GetMapping("/orders/{id}")
     public ResponseEntity<OrderResponseDto> getOrder(

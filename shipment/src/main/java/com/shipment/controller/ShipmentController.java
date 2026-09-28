@@ -1,9 +1,9 @@
 package com.shipment.controller;
 
 
-import com.shipment.dto.shipment.CreateShipmentDto;
-import com.shipment.dto.shipment.ResponseDto;
-import com.shipment.dto.shipment.ShipmentResponseDto;
+import com.shipment.dto.CreateShipmentDto;
+import com.shipment.dto.ResponseDto;
+import com.shipment.dto.ShipmentResponseDto;
 import com.shipment.entity.enums.ShipmentStatus;
 import com.shipment.service.IshipmentService;
 import jakarta.validation.Valid;
@@ -60,11 +60,12 @@ public class ShipmentController {
             @NotNull(message = "shipment Id cannot be null")
             @PathVariable
             Long shipmentId,
+            @RequestHeader("commerceflow-correlation-id") String correlationId,
             @NotNull(message = "shipment Status cannot be null")
             @RequestParam
             ShipmentStatus shipmentStatus){
 
-        ShipmentResponseDto shipmentResponseDto = ishipmentService.updateShipmentStatus(shipmentStatus,shipmentId);
+        ShipmentResponseDto shipmentResponseDto = ishipmentService.updateShipmentStatus(shipmentStatus,shipmentId,correlationId);
         return ResponseEntity.ok(shipmentResponseDto);
     }
 }

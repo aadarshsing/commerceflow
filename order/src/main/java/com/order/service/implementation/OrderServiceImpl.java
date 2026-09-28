@@ -17,6 +17,7 @@ import com.order.repository.OrderRepository;
 import com.order.service.IOrderService;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
+import org.aspectj.weaver.ast.Or;
 import org.commerceflow.dto.cart.CartItemResponseDto;
 import org.commerceflow.dto.cart.CartResponseDto;
 import org.commerceflow.dto.catalog.ProductResponseDto;
@@ -193,7 +194,6 @@ public class OrderServiceImpl implements IOrderService {
         try {
             for(CartItemResponseDto cartItem : cartItemList) {
                 ProductResponseDto product = cartItem.getProductResponseDto();
-
                 if (product.status().toString().equals(ProductStatus.INACTIVE.toString())) {
                     logger.warn("Product is inactive. correlationId={}, productId={}",
                             correlationId,
@@ -233,8 +233,7 @@ public class OrderServiceImpl implements IOrderService {
                         "Order",
                         "Order is Created Successfully",
                         order.getId().toString()
-                )
-        );
+                ));
         logger.debug("ORDER_CREATED notification sent. correlationId={}, orderId={}",
                 correlationId,
                 order.getId());
@@ -301,211 +300,16 @@ public class OrderServiceImpl implements IOrderService {
                     order.getId());
             throw new RuntimeException(e);
         }
+        notificationFeignClient.createNotification(
+                new CreateNotificationDto(
+                        order.getCustomerId(),
+                        NotificationType.PAYMENT_PENDING,
+                        "POP UP",
+                        "Payment",
+                        "Payment Pending",
+                        order.getId().toString()
+                ));
 
-        try {
-            notificationFeignClient.createNotification(
-                    new CreateNotificationDto(
-                            order.getCustomerId(),
-                            NotificationType.PAYMENT_PENDING,
-                            "POP UP",
-                            "Payment",
-                            "Payment Pending",
-                            order.getId().toString()
-                    )
-            );
-            logger.info("Starting payment processing. correlationId={}, orderId={}, paymentMethod={}",
-                    correlationId,
-                    order.getId(),
-                    PaymentMethod.UPI);
-            String paymentIdempotencyKey =
-                    "PAYMENT_ORDER_" + order.getId();
-            ResponseDto paymentResponseDto = paymentFeignClient.createPayment(
-                    paymentIdempotencyKey,
-                    new CreatePaymentDto(
-                            order.getId(),
-                            cartCheckOutRequest.customerId(),
-                            PaymentMethod.UPI
-                    )).getBody();
-
-            logger.info("Payment response received. correlationId={}, orderId={}, paymentStatus={}",
-                    correlationId,
-                    order.getId(),
-                    paymentResponseDto.statusMsg());
-
-            if (paymentResponseDto.statusMsg().equals(PaymentStatus.FAILED.toString())) {
-                for (int i = 1; i < 5; i++) {
-                    logger.warn("Retrying payment. correlationId={}, orderId={}, attempt={}",
-                            correlationId,
-                            order.getId(),
-                            i);
-                    paymentResponseDto = paymentFeignClient.createPayment(
-                            paymentIdempotencyKey,
-                            new CreatePaymentDto(
-                                    order.getId(),
-                                    cartCheckOutRequest.customerId(),
-                                    PaymentMethod.UPI)).getBody();
-                    if((PaymentStatus.FAILED.toString()).equals(paymentResponseDto.statusMsg())
-                            || paymentResponseDto.statusMsg().equals(PaymentStatus.SUCCESS.toString())
-                    ) break;
-
-                }
-            }
-            if(paymentResponseDto.statusMsg().equals(PaymentStatus.FAILED.toString())){
-                logger.error("Payment failed after retries. correlationId={}, orderId={}",
-                        correlationId,
-                        order.getId());
-                for(CartItemResponseDto cartItem:cartItemList){
-                    ProductResponseDto product = cartItem.getProductResponseDto();
-
-                    logger.info("Releasing reserved inventory after payment failure. correlationId={}, orderId={}, productId={}, quantity={}",
-                            correlationId,
-                            order.getId(),
-                            product.id(),
-                            cartItem.getQuantity());
-                    String inventoryReserveKey =
-                            "RELEASE_ORDER_" + order.getId() + "_PRODUCT_" + product.id();
-                    inventoryFeignClient.updateStock(
-                            product.id(),
-                            inventoryReserveKey,
-                            Boolean.TRUE,
-                            new UpdateInventoryDto(
-                                    cartItem.getQuantity(),
-                                    InventoryOperation.RELEASE,
-                                    order.getId()
-                            ));
-                }
-
-            }
-            if(paymentResponseDto.statusMsg().equals(PaymentStatus.SUCCESS.toString())){
-                logger.info("Payment successful. Confirming order. correlationId={}, orderId={}",
-                        correlationId,
-                        order.getId());
-                order.setOrderStatus(OrderStatus.CONFIRMED);
-                orderRepository.save(order);
-                notificationFeignClient.createNotification(
-                        new CreateNotificationDto(
-                                cartCheckOutRequest.customerId(),
-                                NotificationType.ORDER_CONFIRMED,
-                                "POP UP",
-                                "Order",
-                                "Order Confirmed",
-                                order.getId().toString()
-                        )
-                );
-                logger.debug("ORDER_CONFIRMED notification sent. correlationId={}, orderId={}",
-                        correlationId,
-                        order.getId());
-
-                logger.info("Creating shipment. correlationId={}, orderId={}, customerId={}",
-                        correlationId,
-                        order.getId(),
-                        cartCheckOutRequest.customerId());
-                String shipmentIdempotencyKey = "SHIPMENT_ORDER_" + order.getId();
-                ResponseDto responseDto = shipmentFeignClient.createShipment(
-                        shipmentIdempotencyKey,
-                        new CreateShipmentDto(
-                                order.getId(),
-                                cartCheckOutRequest.customerId(),
-                                AddressMapper.orderAddressToAddressResponseDtoMapper(orderAddress)
-                        )
-                ).getBody();
-                logger.info("Shipment creation response received. correlationId={}, orderId={}, statusCode={}",
-                        correlationId,
-                        order.getId(),
-                        responseDto != null ? responseDto.statusCode() : null);
-                if (responseDto == null) {
-                    throw new RuntimeException("Payment response is null");
-                }
-
-                if (HttpStatus.CREATED.toString().equals(responseDto.statusCode())) {
-                    cartFeignClient.deleteCartItems(cart.getId());
-                    logger.info("Cart cleared after successful order creation. correlationId={}, cartId={}, orderId={}",
-                            correlationId,
-                            cart.getId(),
-                            order.getId());
-                }
-                else{
-                    throw new RuntimeException("Shipment cannot be created");
-                }
-
-
-            }
-        } catch (Exception e) {
-            logger.error("Order processing failed. correlationId={}, orderId={}, error={}",
-                    correlationId,
-                    order.getId(),
-                    e.getMessage(),
-                    e);
-            order.setOrderStatus(OrderStatus.CANCELLED);
-            orderRepository.save(order);
-            logger.warn("Order marked as CANCELLED. correlationId={}, orderId={}",
-                    correlationId,
-                    order.getId());
-            PaymentResponseDto paymentSuccessful = Objects.requireNonNull(paymentFeignClient.getPaymentByOrder(order.getId())
-                            .getBody())
-                    .stream()
-                    .filter(payment -> Objects.equals(payment.status().toString(), PaymentStatus.SUCCESS.toString())).findFirst().orElse(null);
-
-            if(paymentSuccessful!=null){
-
-                logger.info("Initiating payment refund. correlationId={}, orderId={}, paymentId={}",
-                        correlationId,
-                        order.getId(),
-                        paymentSuccessful.paymentId());
-                String refundPaymentIdempotencyKey =
-                        "PAYMENT_ORDER_" + order.getId() + "_REFUND_" + paymentSuccessful.paymentId();
-                paymentFeignClient.createRefundPayment(
-                        paymentSuccessful.paymentId(),
-                        paymentSuccessful.orderId(),
-                        refundPaymentIdempotencyKey);
-
-                logger.info("Payment refund initiated successfully. correlationId={}, orderId={}, paymentId={}",
-                        correlationId,
-                        order.getId(),
-                        paymentSuccessful.paymentId());
-            }
-
-            logger.debug("Sending ORDER_CANCELLED notification. correlationId={}, orderId={}",
-                    correlationId,
-                    order.getId());
-            notificationFeignClient.createNotification(
-                    new CreateNotificationDto(
-                            order.getCustomerId(),
-                            NotificationType.ORDER_CANCELLED,
-                            "POP UP",
-                            "Order",
-                            "Order Cancelled " + e,
-                            order.getId().toString()
-                    )
-            );
-            for(CartItemResponseDto cartItem : reservedItems) {
-                ProductResponseDto product = cartItem.getProductResponseDto();
-
-                if (product.status().equals(ProductStatus.INACTIVE)) {
-                    throw new ResourceNotActiveException("Product", "productId", product.id().toString());
-                }
-                logger.info("Releasing inventory during order rollback. correlationId={}, orderId={}, productId={}, quantity={}",
-                        correlationId,
-                        order.getId(),
-                        product.id(),
-                        cartItem.getQuantity());
-                String inventoryReserveKey =
-                        "RELEASE_ORDER_" + order.getId() + "_PRODUCT_" + product.id();
-                inventoryFeignClient.updateStock(
-                        product.id(),
-                        inventoryReserveKey,
-                        Boolean.TRUE,
-                        new UpdateInventoryDto(
-                                cartItem.getQuantity(),
-                                InventoryOperation.RELEASE,
-                                order.getId()
-                        ));
-            }
-            throw new RuntimeException(
-                    "Unable to process order, order creation deleted and inventory is released and if money if deducted it will be refunded within 24 hours",
-                    e
-            );
-        }
         logger.info("Order creation completed successfully. correlationId={}, orderId={}, orderStatus={}",
                 correlationId,
                 order.getId(),
@@ -572,133 +376,263 @@ public class OrderServiceImpl implements IOrderService {
                         "Order",
                         "Order is Created Successfully",
                         order.getId().toString()
-                )
-        );
-        // it will call payment then once payment is confirmed that order transition move to confirmed if payment failed
-        // then we will again release inventory product and make transition to order not created
-        try{
-            notificationFeignClient.createNotification(
-                    new CreateNotificationDto(
-                            order.getCustomerId(),
-                            NotificationType.PAYMENT_PENDING,
-                            "POP UP",
-                            "Payment",
-                            "Payment Pending",
-                            order.getId().toString()
-                    )
-            );
-            String paymentIdempotencyKey =
-                    "PAYMENT_ORDER_" + order.getId();
-            ResponseDto paymentResponseDto = paymentFeignClient.createPayment(
-                    paymentIdempotencyKey,
-                    new CreatePaymentDto(
-                            order.getId(),
-                            buyNowRequest.customerId(),
-                            PaymentMethod.UPI
-                    )).getBody();
-            if(paymentResponseDto == null){
-                throw  new RuntimeException("Payment ResponseDto is null");
-            }
-            if (paymentResponseDto.statusMsg().equals(PaymentStatus.FAILED.toString())) {
-                for (int i = 1; i < 6; i++) {
-                    paymentResponseDto = paymentFeignClient.createPayment(
-                            paymentIdempotencyKey,
-                            new CreatePaymentDto(
-                                    order.getId(),
-                                    buyNowRequest.customerId(),
-                                    PaymentMethod.UPI)).getBody();
-                    if (paymentResponseDto == null) {
-                        throw new RuntimeException("Payment ResponseDto is null");
-                    }
-                    if (paymentResponseDto.statusMsg().equals(PaymentStatus.PENDING.toString())
-                            || paymentResponseDto.statusMsg().equals(PaymentStatus.SUCCESS.toString())
-                    ) break;
+                ));
 
-                }
+        notificationFeignClient.createNotification(
+                new CreateNotificationDto(
+                        order.getCustomerId(),
+                        NotificationType.PAYMENT_PENDING,
+                        "POP UP",
+                        "Payment",
+                        "Payment Pending",
+                        order.getId().toString()
+                ));
+
+
+
+        // we will remove items after begin dispatch or delivered
+
+    }
+
+    @Override
+    public OrderResponseDto makeOrderConfirmOrCancel(Long orderId, PaymentResponseDto paymentResponseDto, String idempotencyKey) {
+
+        String correlationId = "OrderConfirmation";
+        Optional<Order> checkForIdempotent = orderRepository.findByIdempotencyKey(idempotencyKey);
+        if(checkForIdempotent.isPresent()){
+
+            OrderResponseDto orderResponseDto=  OrderMapper.orderToOrderResponseDtoMapper(checkForIdempotent.get());
+            logger.info("Order is already available with Given idempotencyKey . correlationId={}, orderId={}, idempotencyKey={}",
+                    correlationId,
+                    checkForIdempotent.get().getId(),
+                    idempotencyKey);
+
+            logger.info("OrderResponseDto: {}",orderResponseDto);
+            return orderResponseDto;
+        }
+        Optional<Order> chekOrder = orderRepository.findById(orderId);
+        if(chekOrder.isEmpty()){
+            logger.info("Order is not available with Given orderId . correlationId={}, orderId={}",
+                    correlationId,
+                    orderId);
+
+            if(paymentResponseDto.status().equals(PaymentStatus.SUCCESS)){
+
+                String refundPaymentIdempotencyKey =
+                        "PAYMENT_ORDER_" + orderId + "_REFUND_" + paymentResponseDto.paymentId();
+                logger.info("Initiating payment refund. correlationId={}, orderId={}, paymentId={},idempotencyKey={}",
+                        correlationId,
+                        orderId,
+                        paymentResponseDto.paymentId(),
+                        refundPaymentIdempotencyKey);
+                paymentFeignClient.createRefundPayment(
+                        paymentResponseDto.paymentId(),
+                        paymentResponseDto.orderId(),
+                        refundPaymentIdempotencyKey);
             }
-            if(paymentResponseDto.statusMsg().equals(PaymentStatus.FAILED.toString())){
-                String inventoryReleaseKey =
-                        "RELEASE_ORDER_" + order.getId() + "_PRODUCT_" + product.id();
+
+            throw new ResourceNotFoundException("Order","orderId",orderId.toString());
+        }
+        Order order = chekOrder.get();
+        order.setIdempotencyKey(idempotencyKey);
+
+        if((paymentResponseDto.status().equals(PaymentStatus.SUCCESS)
+                && !order.getTotalAmount().equals(paymentResponseDto.amount()))
+                || paymentResponseDto.status().equals(PaymentStatus.FAILED)){
+
+            logger.error("Order processing failed. correlationId={}, orderId={}",
+                    correlationId,
+                    order.getId());
+            // cancel order and initiate refund
+            logger.info("Inside OrderService: Initiating payment refund if success.correlationId={}, orderId={}, paymentId={},PaymentStatus={}",
+                    correlationId,
+                    order.getId(),
+                    paymentResponseDto.paymentId(),
+                    paymentResponseDto.status());
+
+            if(paymentResponseDto.status().equals(PaymentStatus.SUCCESS)){
+
+                String refundPaymentIdempotencyKey =
+                        "PAYMENT_ORDER_" + orderId + "_REFUND_" + paymentResponseDto.paymentId();
+                logger.info("Inside OrderService: Initiating payment refund. correlationId={}, orderId={}, paymentId={},idempotencyKey={}",
+                        correlationId,
+                        orderId,
+                        paymentResponseDto.paymentId(),
+                        refundPaymentIdempotencyKey);
+
+                paymentFeignClient.createRefundPayment(
+                        paymentResponseDto.paymentId(),
+                        paymentResponseDto.orderId(),
+                        refundPaymentIdempotencyKey);
+            }
+
+
+            for(OrderItem orderItem:order.getOrderItems()){
+
+                logger.info("Releasing reserved inventory after payment failure. correlationId={}, orderId={}, productId={}, quantity={}",
+                        correlationId,
+                        order.getId(),
+                        orderItem.getProductId(),
+                        orderItem.getQuantity());
+                String inventoryReserveKey =
+                        "RELEASE_ORDER_" + order.getId() + "_PRODUCT_" + orderItem.getProductId();
                 inventoryFeignClient.updateStock(
-                        product.id(),
-                        inventoryReleaseKey,
+                        orderItem.getProductId(),
+                        inventoryReserveKey,
                         Boolean.TRUE,
                         new UpdateInventoryDto(
-                                buyNowRequest.quantity(),
+                                orderItem.getQuantity(),
                                 InventoryOperation.RELEASE,
                                 order.getId()
                         ));
             }
-            if(paymentResponseDto.statusMsg().equals(PaymentStatus.SUCCESS.toString())){
+            order.setOrderStatus(OrderStatus.CANCELLED);
+            orderRepository.save(order);
+            logger.error("ORDER_CANCELLED. correlationId={}, orderId={}",
+                    correlationId,
+                    order.getId());
+            logger.debug("Sending ORDER_CANCELLED notification. correlationId={}, orderId={}",
+                    correlationId,
+                    order.getId());
 
-                order.setOrderStatus(OrderStatus.CONFIRMED);
-                orderRepository.save(order);
-                notificationFeignClient.createNotification(
-                        new CreateNotificationDto(
-                                order.getCustomerId(),
-                                NotificationType.ORDER_CONFIRMED,
-                                "POP UP",
-                                "Order",
-                                "Order is confirmed Successfully",
-                                order.getId().toString()
-                        )
-                );
-                String shipmentIdempotencyKey = "SHIPMENT_ORDER_" + order.getId();
-                ResponseDto responseDto = shipmentFeignClient.createShipment(
-                        shipmentIdempotencyKey,
-                        new CreateShipmentDto(
-                                order.getId(),
-                                order.getCustomerId(),
-                                AddressMapper.orderAddressToAddressResponseDtoMapper(orderAddress)
-                        )
-                ).getBody();
-                if (responseDto == null) {
-                    throw new RuntimeException("Shipment does not created ");
-                }
-            }
-        }
-        catch (Exception e){
-            PaymentResponseDto paymentSuccessful = Objects.requireNonNull(paymentFeignClient.getPaymentByOrder(order.getId())
-                            .getBody())
-                    .stream()
-                    .filter(payment -> payment.status() == PaymentStatus.SUCCESS).findFirst().orElse(null);
-            if(paymentSuccessful!=null){
-                String refundPaymentIdempotencyKey =
-                        "PAYMENT_ORDER_" + order.getId() + "_REFUND_" + paymentSuccessful.paymentId();
-                paymentFeignClient.createRefundPayment(
-                        paymentSuccessful.paymentId(),paymentSuccessful.orderId(),refundPaymentIdempotencyKey );
-            }
             notificationFeignClient.createNotification(
                     new CreateNotificationDto(
                             order.getCustomerId(),
                             NotificationType.ORDER_CANCELLED,
                             "POP UP",
                             "Order",
-                            "Order is Cancelled due to some issue" + e,
+                            "Order Cancelled " ,
                             order.getId().toString()
+                    ));
+
+            return OrderMapper.orderToOrderResponseDtoMapper(order);
+
+
+        }
+
+        order.setOrderStatus(OrderStatus.CONFIRMED);
+        orderRepository.save(order);
+        notificationFeignClient.createNotification(
+                new CreateNotificationDto(
+                        order.getCustomerId(),
+                        NotificationType.ORDER_CONFIRMED,
+                        "POP UP",
+                        "Order",
+                        "Order Confirmed",
+                        order.getId().toString()
+                ));
+
+        logger.debug("ORDER_CONFIRMED notification sent. correlationId={}, orderId={}",
+                correlationId,
+                order.getId());
+
+        try {
+            logger.info("Creating shipment. correlationId={}, orderId={}, customerId={}",
+                    correlationId,
+                    order.getId(),
+                    order.getCustomerId());
+
+            String shipmentIdempotencyKey = "SHIPMENT_ORDER_" + order.getId();
+            ResponseDto responseDto = shipmentFeignClient.createShipment(
+                    shipmentIdempotencyKey,
+                    new CreateShipmentDto(
+                            order.getId(),
+                            order.getCustomerId(),
+                            AddressMapper.orderAddressToAddressResponseDtoMapper(order.getShippingAddress())
                     )
-            );
+            ).getBody();
+
+            logger.info("Shipment creation response received. correlationId={}, orderId={}, statusCode={}",
+                    correlationId,
+                    order.getId(),
+                    responseDto != null ? responseDto.statusCode() : null);
+            if (responseDto == null) {
+                throw new RuntimeException("Payment response is null");
+            }
+
+            if (HttpStatus.CREATED.toString().equals(responseDto.statusCode())) {
+                cartFeignClient.deleteCartItems(order.getCustomerId());
+                logger.info("Cart cleared after successful order confirmation. correlationId={}, customerId={}, orderId={}",
+                        correlationId,
+                        order.getCustomerId(),
+                        order.getId());
+            }
+            else{
+                throw new RuntimeException("Shipment cannot be created");
+            }
+        } catch (Exception e) {
+
+            logger.error("Order processing failed. correlationId={}, orderId={}, error={}",
+                    correlationId,
+                    order.getId(),
+                    e.getMessage(),
+                    e);
             order.setOrderStatus(OrderStatus.CANCELLED);
             orderRepository.save(order);
-            String inventoryReleaseKey =
-                    "RELEASE_ORDER_" + order.getId() + "_PRODUCT_" + product.id();
-            inventoryFeignClient.updateStock(
-                    product.id(),
-                    inventoryReleaseKey,
-                    Boolean.TRUE,
-                    new UpdateInventoryDto(
-                            buyNowRequest.quantity(),
-                            InventoryOperation.RELEASE,
-                            order.getId()
+            logger.warn("Order marked as CANCELLED. correlationId={}, orderId={}",
+                    correlationId,
+                    order.getId());
+
+            logger.info("Initiating payment refund. correlationId={}, orderId={}, paymentId={}",
+                    correlationId,
+                    order.getId(),
+                    paymentResponseDto.paymentId());
+
+            String refundPaymentIdempotencyKey =
+                    "PAYMENT_ORDER_" + order.getId() + "_REFUND_" + paymentResponseDto.paymentId();
+            paymentFeignClient.createRefundPayment(
+                    paymentResponseDto.paymentId(),
+                    paymentResponseDto.orderId(),
+                    refundPaymentIdempotencyKey);
+
+            logger.info("Payment refund initiated successfully. correlationId={}, orderId={}, paymentId={}",
+                    correlationId,
+                    order.getId(),
+                    paymentResponseDto.paymentId());
+
+            logger.debug("Sending ORDER_CANCELLED notification. correlationId={}, orderId={}",
+                    correlationId,
+                    order.getId());
+            notificationFeignClient.createNotification(
+                    new CreateNotificationDto(
+                            order.getCustomerId(),
+                            NotificationType.ORDER_CANCELLED,
+                            "POP UP",
+                            "Order",
+                            "Order Cancelled " ,
+                            order.getId().toString()
                     ));
+            for(OrderItem orderItem:order.getOrderItems()){
+
+                logger.info("Releasing reserved inventory after shipment failure. correlationId={}, orderId={}, productId={}, quantity={}",
+                        correlationId,
+                        order.getId(),
+                        orderItem.getProductId(),
+                        orderItem.getQuantity());
+                String inventoryReserveKey =
+                        "RELEASE_ORDER_" + order.getId() + "_PRODUCT_" + orderItem.getProductId();
+                inventoryFeignClient.updateStock(
+                        orderItem.getProductId(),
+                        inventoryReserveKey,
+                        Boolean.TRUE,
+                        new UpdateInventoryDto(
+                                orderItem.getQuantity(),
+                                InventoryOperation.RELEASE,
+                                order.getId()
+                        ));
+            }
             throw new RuntimeException(
-                    "Unable to create Payment, order creation deleted and inventory is released and Money Refunded ",
+                    "Unable to process order, order creation deleted and inventory is released and if money if deducted it will be refunded within 24 hours",
                     e
             );
         }
 
-        // we will remove items after begin dispatch or delivered
+        logger.info("Order confirmation completed successfully. correlationId={}, orderId={}, orderStatus={}",
+                correlationId,
+                order.getId(),
+                order.getOrderStatus());
 
+        return OrderMapper.orderToOrderResponseDtoMapper(order);
     }
 
     @Override
@@ -778,8 +712,7 @@ public class OrderServiceImpl implements IOrderService {
                         "Order",
                         "Order state transition",
                         order.getId().toString()
-                        )
-        );
+                        ));
     }
 
     @Override

@@ -1,7 +1,7 @@
 package com.payment.service.client;
 
 
-import com.payment.dto.payment.ResponseDto;
+import com.payment.dto.ResponseDto;
 import jakarta.validation.Valid;
 import org.commerceflow.dto.notification.CreateNotificationDto;
 import org.springframework.cloud.openfeign.FeignClient;

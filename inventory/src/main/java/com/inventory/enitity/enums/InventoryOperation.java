@@ -4,6 +4,7 @@ public enum InventoryOperation {
     ADD,
     REMOVE,
     RESERVE,
-    RELEASE
+    RELEASE,
+    REMOVE_RESERVED
 
 }

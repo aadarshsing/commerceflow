@@ -1,8 +1,8 @@
-package com.shipment.dto.shipment;
+package com.shipment.dto;
 
-import com.shipment.dto.order.OrderAddressResponseDto;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import org.commerceflow.dto.order.OrderAddressResponseDto;
 
 public record CreateShipmentDto(
         @NotNull(message = "orderId cannot be null")

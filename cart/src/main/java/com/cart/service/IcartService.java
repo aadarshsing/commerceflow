@@ -21,8 +21,8 @@ public interface IcartService {
 
     /**
      *
-     * @param cartId
+     * @param customerId
      * @return responseDto whether cart is deleted or not
      */
-    ResponseDto deleteCart(Long cartId);
+    ResponseDto deleteCart(Long customerId);
 }

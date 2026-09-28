@@ -1,22 +1,28 @@
 package com.shipment.service.implementation;
 
-import com.shipment.dto.notification.CreateNotificationDto;
-import com.shipment.dto.shipment.CreateShipmentDto;
-import com.shipment.dto.shipment.ResponseDto;
-import com.shipment.dto.shipment.ShipmentResponseDto;
+import com.shipment.dto.CreateShipmentDto;
+import com.shipment.dto.ResponseDto;
+import com.shipment.dto.ShipmentResponseDto;
 import com.shipment.entity.Shipment;
 import com.shipment.entity.ShippingAddress;
-import com.shipment.entity.enums.NotificationType;
 import com.shipment.entity.enums.ShipmentStatus;
-import com.shipment.exception.DuplicateResourceException;
 import com.shipment.exception.ResourceNotFoundException;
 import com.shipment.mapper.ShipmentMapper;
 import com.shipment.repository.ShipmentRepository;
 import com.shipment.service.IshipmentService;
 import com.shipment.service.client.CustomerFeignClient;
+import com.shipment.service.client.InventoryFeignClient;
 import com.shipment.service.client.NotificationFeignClient;
 import com.shipment.service.client.OrderFeignClient;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import org.commerceflow.dto.inventory.UpdateInventoryDto;
+import org.commerceflow.dto.notification.CreateNotificationDto;
+import org.commerceflow.dto.order.OrderItemResponseDto;
+import org.commerceflow.dto.order.OrderResponseDto;
+import org.commerceflow.enums.inventory.InventoryOperation;
+import org.commerceflow.enums.notification.NotificationType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,13 +31,16 @@ import java.time.Instant;
 import java.util.Optional;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class ShipmentServiceImpl implements IshipmentService {
 
-    CustomerFeignClient customerFeignClient;
-    OrderFeignClient orderFeignClient;
-    NotificationFeignClient notificationFeignClient;
-    ShipmentRepository shipmentRepository;
+    private static final Logger logger = LoggerFactory.getLogger(ShipmentServiceImpl.class);
+
+    private final CustomerFeignClient customerFeignClient;
+    private final OrderFeignClient orderFeignClient;
+    private final NotificationFeignClient notificationFeignClient;
+    private final ShipmentRepository shipmentRepository;
+    private final InventoryFeignClient inventoryFeignClient;
 
     @Override
     public ResponseDto createShipment(CreateShipmentDto createShipmentDto, String shipmentIdempotencyKey) {
@@ -45,16 +54,19 @@ public class ShipmentServiceImpl implements IshipmentService {
         }
         Optional<Shipment> checkShipment = shipmentRepository.findByOrderId(createShipmentDto.orderId());
 
-        checkShipment.ifPresent(shipment -> new ResponseDto(
-                HttpStatus.CREATED.toString(),
-                shipment.getId().toString()
-        ));
+        if(checkShipment.isPresent()){
+            return new ResponseDto(
+                    HttpStatus.CREATED.toString(),
+                    checkShipment.get().getId().toString());
+        }
         Optional<Shipment> optionalShipment = shipmentRepository.findByIdempotencyKey(shipmentIdempotencyKey);
-        optionalShipment.ifPresent(shipment -> new ResponseDto(
-                        HttpStatus.CREATED.toString(),
-                        shipment.getId().toString()
-                )
-        );
+
+        if(optionalShipment.isPresent()){
+            return new ResponseDto(
+                    HttpStatus.CREATED.toString(),
+                    optionalShipment.get().getId().toString()
+            );
+        }
         Shipment shipment = ShipmentMapper.createShipmentDtoToShipmentMapper(new Shipment(),createShipmentDto);
         ShippingAddress shippingAddress = ShipmentMapper.orderAddressToShippingAddressMapper(new ShippingAddress(),createShipmentDto.shippingAddress());
         shippingAddress.setShipment(shipment);
@@ -115,7 +127,7 @@ public class ShipmentServiceImpl implements IshipmentService {
 
     @Override
     @Transactional
-    public ShipmentResponseDto updateShipmentStatus(ShipmentStatus status, Long shipmentId) {
+    public ShipmentResponseDto updateShipmentStatus(ShipmentStatus status, Long shipmentId, String correlationId) {
         Shipment shipment = shipmentRepository.findById(shipmentId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Shipment",
@@ -170,9 +182,36 @@ public class ShipmentServiceImpl implements IshipmentService {
 
         if (status == ShipmentStatus.SHIPPED) {
             shipment.setShippedAt(Instant.now());
+
         }
         if(status == ShipmentStatus.DELIVERED){
+
+            //remove inventory release items
+            OrderResponseDto orderResponseDto = orderFeignClient.getOrder(shipment.getOrderId()).getBody();
+            for(OrderItemResponseDto orderItem: orderResponseDto.orderItems()){
+                Long productId = orderItem.productId();
+                logger.info("Removing reserved inventory after product delivered. correlationId={}, orderId={}, shipmentId={}, productId={}",
+                        correlationId,
+                        orderResponseDto.id(),
+                        shipment.getId(),
+                        productId);
+                String inventoryReserveKey =
+                        "REMOVING_RESERVED_Product_FOR_DELIVERED_ORDER" + orderResponseDto.id() + "_PRODUCT_" + productId;
+                inventoryFeignClient.updateStock(
+                        productId,
+                        inventoryReserveKey,
+                        Boolean.TRUE,
+                        new UpdateInventoryDto(
+                                orderItem.quantity(),
+                                InventoryOperation.REMOVE_RESERVED,
+                                orderResponseDto.id()
+                        ));
+            }
             shipment.setDeliveredAt(Instant.now());
+            logger.info("Order delivered. correlationId={}, orderId={}, shipmentId={}",
+                    correlationId,
+                    orderResponseDto.id(),
+                    shipment.getId());
         }
 
         Shipment savedShipment = shipmentRepository.save(shipment);
