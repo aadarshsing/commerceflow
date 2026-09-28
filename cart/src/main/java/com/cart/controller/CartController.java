@@ -23,8 +23,9 @@ public class CartController {
     private IcartService cartService;
 
     @PostMapping("/carts")
-    public ResponseEntity<ResponseDto> createCart(@Valid @RequestBody CreateCartDto createCartDto){
-        cartService.createCart(createCartDto);
+    public ResponseEntity<ResponseDto> createCart(@Valid @RequestBody CreateCartDto createCartDto,
+    @RequestHeader String idempotencyKey){
+        cartService.createCart(createCartDto,idempotencyKey);
         return new ResponseEntity<>(
                 new ResponseDto(
                         HttpStatus.CREATED.toString(),

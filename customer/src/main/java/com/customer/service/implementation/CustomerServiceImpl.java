@@ -1,6 +1,5 @@
 package com.customer.service.implementation;
 
-import com.customer.dto.cart.CreateCartDto;
 import com.customer.dto.customer.CreateCustomerRequest;
 import com.customer.dto.customer.CustomerResponseDto;
 import com.customer.dto.customer.UpdateCustomerDto;
@@ -12,9 +11,9 @@ import com.customer.exception.ResourceNotFoundException;
 import com.customer.mapper.CustomerMapper;
 import com.customer.repository.CustomerRepository;
 import com.customer.service.IcustomerService;
-import com.customer.service.client.CartFeignClient;
-import lombok.AllArgsConstructor;
+import com.customer.client.CartFeignClient;
 import lombok.RequiredArgsConstructor;
+import org.commerceflow.dto.cart.CreateCartDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -40,8 +39,9 @@ public class CustomerServiceImpl implements IcustomerService {
         customer = customerRepository.save(customer);
 
         try {
+            String idempotencyKey = "CREATE_CART_FOR_CUSTOMER_"+"CUSTOMER_ID_"+customer.getId();
             CreateCartDto cartDto = new CreateCartDto(customer.getId());
-            cartFeignClient.createCart(cartDto);
+            cartFeignClient.createCart(cartDto,idempotencyKey);
         } catch (Exception e) {
            customerRepository.deleteById(customer.getId());
            throw new IllegalStateException("cart cannot created so customer is also not created");
@@ -100,7 +100,7 @@ public class CustomerServiceImpl implements IcustomerService {
     @Override
     public Boolean checkCustomer(Long customerId) {
         Optional<Customer> customer = customerRepository.findById(customerId);
-        
+
         if (customer.isPresent()
                 && customer.get().getCustomerStatus().equals(CustomerStatus.ACTIVE)) {
 

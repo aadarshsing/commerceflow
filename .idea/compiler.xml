@@ -11,7 +11,7 @@
         <module name="commerceflow-contracts" />
         <module name="gatewayServer" />
       </profile>
-      <profile name="Annotation profile for shipment" enabled="true">
+      <profile name="Annotation profile for customer" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
@@ -24,8 +24,8 @@
         <module name="payment" />
         <module name="inventory" />
         <module name="cart" />
-        <module name="order" />
         <module name="customer" />
+        <module name="order" />
       </profile>
     </annotationProcessing>
   </component>

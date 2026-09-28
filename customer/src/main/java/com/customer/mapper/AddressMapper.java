@@ -11,6 +11,7 @@ public class AddressMapper {
     public  static AddressResponseDto addressEntityToDtoMapper(Address address){
 
         return new AddressResponseDto(
+                address.getId(),
                 address.getCustomer().getId(),
                 address.getType(),
                 address.getAddressLine1(),

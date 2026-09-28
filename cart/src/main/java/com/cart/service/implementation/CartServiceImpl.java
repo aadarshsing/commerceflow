@@ -39,7 +39,7 @@ public class CartServiceImpl implements IcartService {
     private final CatalogFeignClient catalogFeignClient;
 
     @Override
-    public void createCart(CreateCartDto createCartDto) {
+    public void createCart(CreateCartDto createCartDto, String idempotencyKey) {
 
         Optional<Cart> cart = cartRepository.findByCustomerId(createCartDto.customerId());
 

@@ -51,10 +51,10 @@ resilience4j:
         waitDurationInOpenState: 10s
 
   timelimiter:
-#    configs:
-#      default:
-#        timeoutDuration: 3s
-#        cancelRunningFuture: true
+    configs:
+      default:
+        timeoutDuration: 3s
+        cancelRunningFuture: true
 
     instances:
       customerCircuitBreaker:

@@ -4,6 +4,7 @@ package com.customer.dto.address;
 import com.customer.entity.enums.AddressType;
 
 public record AddressResponseDto(
+        Long id,
         Long customerId,
         AddressType type,
         String addressLine1,
