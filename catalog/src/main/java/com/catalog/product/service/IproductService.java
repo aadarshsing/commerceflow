@@ -14,8 +14,9 @@ public interface IproductService {
     /**
      *
      * @param productRequestDto
+     * @return
      */
-    void createProduct(CreateProductRequestDto productRequestDto);
+    ProductResponseDto createProduct(CreateProductRequestDto productRequestDto);
 
     /**
      *

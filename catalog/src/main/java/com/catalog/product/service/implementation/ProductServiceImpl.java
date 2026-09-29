@@ -19,6 +19,8 @@ import com.catalog.product.service.client.InventoryFeignClient;
 import com.catalog.seller.entity.Seller;
 import com.catalog.seller.repository.SellerRepository;
 import lombok.AllArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -31,13 +33,15 @@ import java.util.Optional;
 @Service
 public class ProductServiceImpl implements IproductService {
 
-    ProductRepository productRepository;
-    CategoryRepository categoryRepository;
-    SellerRepository sellerRepository;
-    InventoryFeignClient inventoryFeignClient;
+    private static  final Logger logger = LoggerFactory.getLogger(ProductServiceImpl.class);
+
+    private  final ProductRepository productRepository;
+    private final CategoryRepository categoryRepository;
+    private final SellerRepository sellerRepository;
+    private final InventoryFeignClient inventoryFeignClient;
 
     @Override
-    public void createProduct(CreateProductRequestDto productRequestDto) {
+    public ProductResponseDto createProduct(CreateProductRequestDto productRequestDto) {
 
         Optional<Seller> seller = sellerRepository.findById(productRequestDto.sellerId());
         if(seller.isEmpty()){
@@ -56,10 +60,11 @@ public class ProductServiceImpl implements IproductService {
             );
         }
         Product product = ProductMapper.productCreateDtoToEntity(productRequestDto, new Product());
-        product.setCategory(category.get());
-        product.setSeller(seller.get());
-        productRepository.save(product);
         try {
+            product.setCategory(category.get());
+            product.setSeller(seller.get());
+            productRepository.save(product);
+
             inventoryFeignClient.createInventory(
                     new CreateInventoryDto(
                         product.getId(),
@@ -68,12 +73,13 @@ public class ProductServiceImpl implements IproductService {
                     )
             );
         } catch (Exception e) {
-            productRepository.deleteById(product.getId());
-            throw new RuntimeException(
-                    "Unable to create Inventory, product creation deleted ",
-                    e
-            );
+            if(product != null){
+                return ProductMapper.productEntityTOResponseDto(product);
+            }
+            throw new RuntimeException("Product is not created and Inventory also  for given " +  productRequestDto);
+
         }
+        return ProductMapper.productEntityTOResponseDto(product);
 
     }
 

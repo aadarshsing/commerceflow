@@ -27,14 +27,11 @@ public class ProductController {
     IproductService iproductService;
 
     @PostMapping("/product")
-    ResponseEntity<ResponseDto> createProduct(@Valid @RequestBody CreateProductRequestDto productRequestDto){
+    ResponseEntity<ProductResponseDto> createProduct(@Valid @RequestBody CreateProductRequestDto productRequestDto){
 
-        iproductService.createProduct(productRequestDto);
+        ProductResponseDto productResponseDto =iproductService.createProduct(productRequestDto);
         return ResponseEntity.ok(
-                new ResponseDto(
-                        HttpStatus.OK.toString(),
-                        "Product is created Successfully"
-                )
+                productResponseDto
         );
 
     }

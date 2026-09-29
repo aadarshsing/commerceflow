@@ -17,6 +17,21 @@ spring:
   sql:
     init:
       mode: always
+  cloud:
+    openfeign:
+      httpclient:
+        hc5:
+          enabled: true
+      circuitbreaker:
+        enabled: true
+        alphanumeric-ids:
+          enabled: true
+      client:
+        config:
+          inventory:
+            connectTimeout: 500
+            readTimeout: 1000
+
 eureka:
   instance:
     preferIpAddress: true
@@ -25,4 +40,23 @@ eureka:
     registerWithEureka: true
     serviceUrl:
       defaultZone: http://localhost:8761/eureka/
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 10
+        failureRateThreshold: 50
+        slowCallDurationThreshold: 2s
+        slowCallRateThreshold: 50
+        permittedNumberOfCallsInHalfOpenState: 2
+        waitDurationInOpenState: 10s
+
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 1s
+        cancelRunningFuture: true
 
