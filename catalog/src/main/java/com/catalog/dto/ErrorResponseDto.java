@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -15,7 +16,7 @@ import java.util.HashMap;
 public class ErrorResponseDto {
 
     private String apiPath;
-    private HttpStatus errorCode;
+    private HttpStatusCode errorCode;
     private String errorMessage;
     private LocalDateTime errorTime;
     private HashMap<String,String> validatonErrors;

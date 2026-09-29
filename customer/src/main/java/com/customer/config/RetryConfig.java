@@ -12,11 +12,12 @@ public class RetryConfig {
     @Bean
     public Retryer retryer(){
         return new Retryer.Default(
-                400,
-                2000,
+                200,
+                1000,
                 3
         );
     }
+    @Bean
     public ErrorDecoder errorDecoder(){
         return new RetryableErrorDecoder();
     }

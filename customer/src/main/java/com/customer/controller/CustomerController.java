@@ -30,42 +30,44 @@ public class CustomerController {
     IAddressService addressService;
 
     @PostMapping("/customer")
-    public ResponseEntity<ResponseDto> createCustomer(@Valid @RequestBody CreateCustomerRequest createCustomerRequest){
-        customerService.createCustomer(createCustomerRequest);
+    public ResponseEntity<ResponseDto> createCustomer(@Valid @RequestBody CreateCustomerRequest createCustomerRequest,
+                                                      @RequestHeader("Idempotency-Key") String idempotencyKey,
+                                                      @RequestHeader("commerceflow-correlation-id") String correlationId){
+        ResponseDto responeDto = customerService.createCustomer(createCustomerRequest,idempotencyKey,correlationId);
 
         return new ResponseEntity<>(
-                new ResponseDto(
-                        HttpStatus.CREATED.toString(),
-                        "Customer Created Successfully"
-                        ),
+                responeDto,
                 HttpStatus.CREATED
 
         );
     }
 
     @GetMapping("/customer")
-    public ResponseEntity<CustomerResponseDto> fetchCustomer(@Email(message = "Invalid email format") @RequestParam String email){
-        CustomerResponseDto customerResponseDto = customerService.fetchCustomer(email);
+    public ResponseEntity<CustomerResponseDto> fetchCustomer(@Email(message = "Invalid email format") @RequestParam String email,@RequestHeader("commerceflow-correlation-id") String correlationId){
+        CustomerResponseDto customerResponseDto = customerService.fetchCustomer(email,correlationId);
         return ResponseEntity.ok(customerResponseDto);
     }
     @PutMapping("/customer")
     public  ResponseEntity<CustomerResponseDto> updateCustomer(@RequestBody @Valid UpdateCustomerDto updateCustomerDto,
-                                                               @Email(message = "Invalid email format") @RequestParam  String email){
-        CustomerResponseDto customerResponseDto = customerService.updateCustomer(updateCustomerDto,email);
+                                                               @Email(message = "Invalid email format") @RequestParam  String email,
+                                                               @RequestHeader("commerceflow-correlation-id") String correlationId){
+        CustomerResponseDto customerResponseDto = customerService.updateCustomer(updateCustomerDto,email,correlationId);
         return new ResponseEntity<>(
                 customerResponseDto,
                 HttpStatus.OK
         );
     }
     @GetMapping("/customer/{customerId}")
-    public ResponseEntity<Boolean> checkCustomerExist(@PathVariable @NotNull(message = "customerId cannot be null") Long customerId){
-        Boolean isPresent = customerService.checkCustomer(customerId);
+    public ResponseEntity<Boolean> checkCustomerExist(@PathVariable @NotNull(message = "customerId cannot be null") Long customerId,
+                                                      @RequestHeader("commerceflow-correlation-id") String correlationId){
+        Boolean isPresent = customerService.checkCustomer(customerId,correlationId);
         return ResponseEntity.ok(isPresent);
     }
 
     @DeleteMapping("/customer")
-    public ResponseEntity<ResponseDto> deleteCustomer(@RequestParam @Email(message = "Invalid email format") String email) {
-        boolean isDeleted = customerService.deleteCustomer(email);
+    public ResponseEntity<ResponseDto> deleteCustomer(@RequestParam @Email(message = "Invalid email format") String email,
+                                                      @RequestHeader("commerceflow-correlation-id") String correlationId) {
+        boolean isDeleted = customerService.deleteCustomer(email,correlationId);
         if (isDeleted) {
             return new ResponseEntity<>(
                     new ResponseDto(
@@ -90,8 +92,9 @@ public class CustomerController {
 
 
     @PostMapping("/address")
-    ResponseEntity<ResponseDto> createAddressForCustomer(@Valid @RequestBody CreateAddressRequestDto createAddressRequestDto){
-        addressService.createAddress(createAddressRequestDto);
+    ResponseEntity<ResponseDto> createAddressForCustomer(@Valid @RequestBody CreateAddressRequestDto createAddressRequestDto,
+                                                         @RequestHeader("commerceflow-correlation-id") String correlationId){
+        addressService.createAddress(createAddressRequestDto,correlationId);
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 new ResponseDto(
                         HttpStatus.CREATED.toString(),
@@ -102,8 +105,9 @@ public class CustomerController {
 
     @GetMapping("/address/{addressId}")
     ResponseEntity<AddressResponseDto> getAddress(@NotNull(message = "AddressId cannot be null" )
-                                                  @PathVariable Long addressId){
-        AddressResponseDto addressResponseDto = addressService.getAddress(addressId);
+                                                  @PathVariable Long addressId,
+                                                  @RequestHeader("commerceflow-correlation-id") String correlationId){
+        AddressResponseDto addressResponseDto = addressService.getAddress(addressId,correlationId );
         return ResponseEntity.ok(addressResponseDto);
     }
 

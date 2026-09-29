@@ -29,8 +29,8 @@ public class Cart extends BaseEntity {
     @OneToMany(mappedBy = "cart" , fetch = FetchType.LAZY, cascade = CascadeType.ALL,orphanRemoval = true)
     private List<CartItem> items = new ArrayList<>();
     
-    @Column(nullable = false,unique = true)
-    String idempotencykey;
+    @Column(name = "",nullable = false,unique = true)
+    String idempotencyKey;
 
 
 }

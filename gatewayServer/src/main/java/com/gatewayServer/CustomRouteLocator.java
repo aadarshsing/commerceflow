@@ -3,7 +3,10 @@ package com.gatewayServer;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
+
+import java.time.Duration;
 
 @Component
 public class CustomRouteLocator {
@@ -14,7 +17,11 @@ public class CustomRouteLocator {
                 .route(predicateSpec -> predicateSpec.path("/commerceflow/customer/**")
                         .filters(gatewayFilterSpec -> gatewayFilterSpec.rewritePath("/commerceflow/customer/(?<segment>.*)", "/${segment}")
                                 .circuitBreaker(config -> config.setName("customerCircuitBreaker")
-                                        .setFallbackUri("forward:/contact-support")))
+                                        .setFallbackUri("forward:/contact-support"))
+                                .retry(retryConfig -> retryConfig
+                                        .setRetries(3)
+                                        .setMethods(HttpMethod.GET,HttpMethod.POST)
+                                        .setBackoff(Duration.ofMillis(100),Duration.ofMillis(1000),3,true)))
                         .uri("lb://CUSTOMER"))
                 .route(predicateSpec -> predicateSpec.path("/commerceflow/payment/**")
                         .filters(gatewayFilterSpec -> gatewayFilterSpec.rewritePath("/commerceflow/payment/(?<segment>.*)", "/${segment}"))

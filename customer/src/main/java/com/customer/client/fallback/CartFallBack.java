@@ -15,4 +15,11 @@ public class CartFallBack implements CartFeignClient {
                 "Cart Service is currently unavailable"
         );
     }
+
+    @Override
+    public ResponseEntity<ResponseDto> deleteCart(Long customerId) {
+        throw new ServiceUnavailableException(
+                "Cart Service is currently unavailable"
+        );
+    }
 }

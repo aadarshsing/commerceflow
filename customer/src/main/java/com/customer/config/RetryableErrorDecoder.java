@@ -14,6 +14,7 @@ public class RetryableErrorDecoder implements ErrorDecoder {
 
     @Override
     public Exception decode(String s, Response response) {
+
         if(response.status() == 502 || response.status() == 503 || response.status() == 504){
             return new RetryableException(
                     response.status(),

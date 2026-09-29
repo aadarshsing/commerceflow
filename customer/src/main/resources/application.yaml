@@ -25,6 +25,11 @@ spring:
         enabled: true
         alphanumeric-ids:
           enabled: true
+      client:
+        config:
+          cart:
+            connectTimeout: 500
+            readTimeout: 1000
 eureka:
   instance:
     preferIpAddress: true
@@ -50,6 +55,7 @@ resilience4j:
   timelimiter:
     configs:
       default:
-        timeoutDuration: 4s
+        timeoutDuration: 1s
         cancelRunningFuture: true
+
 

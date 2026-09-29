@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,15 +43,16 @@ public class CartServiceImpl implements IcartService {
     public void createCart(CreateCartDto createCartDto, String idempotencyKey) {
 
         Optional<Cart> cart = cartRepository.findByCustomerId(createCartDto.customerId());
-
+        logger.info("cart is called. idempotencyKey={}",idempotencyKey);
         if(cart.isPresent() && cart.get().getCartStatus().equals(CartStatus.ACTIVE)){
             throw new DuplicateResourceException("Cart is already Created and Active for given customerId "+createCartDto.customerId());
         }
-        Boolean isPresent  = customerFeignClient.checkCustomerExist(createCartDto.customerId()).getBody();
-        if(isPresent.equals(Boolean.FALSE)){
-            throw new ResourceNotFoundException("Customer","customerId",createCartDto.customerId().toString());
-        }
+//        Boolean isPresent  = customerFeignClient.checkCustomerExist(createCartDto.customerId()).getBody();
+//        if(isPresent.equals(Boolean.FALSE)){
+//            throw new ResourceNotFoundException("Customer","customerId",createCartDto.customerId().toString());
+//        }
         Cart cartToSave = CartMapper.cartDtoTOCart(createCartDto,new Cart());
+        cartToSave.setIdempotencyKey(idempotencyKey);
         cartRepository.save(cartToSave);
     }
 
@@ -82,11 +84,23 @@ public class CartServiceImpl implements IcartService {
     }
     @Transactional
     @Override
-    public ResponseDto deleteCart(Long customerId) {
+    public ResponseDto deleteCartItems(Long customerId) {
         Cart cart = cartRepository.findByCustomerId(customerId).orElseThrow(
                 ()-> new ResourceNotFoundException("Cart","customerId", customerId.toString())
         );
         cart.getItems().clear();
+        return new ResponseDto(
+                HttpStatus.OK.toString(),
+                "cart deleted Successfully"
+        );
+    }
+
+    @Transactional
+    @Override
+    public ResponseDto deleteCart(Long customerId) {
+        logger.info("Inside cart Service: cart service is called");
+        cartRepository.deleteByCustomerId(customerId);
+
         return new ResponseDto(
                 HttpStatus.OK.toString(),
                 "cart deleted Successfully"

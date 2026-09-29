@@ -9,13 +9,15 @@ public interface IAddressService {
     /**
      *
      * @param addressRequestDto
+     * @param correlationId
      */
-    void createAddress(CreateAddressRequestDto addressRequestDto);
+    void createAddress(CreateAddressRequestDto addressRequestDto,String correlationId);
 
     /**
      *
      * @param id
+     * @param correlationId
      * @return = address
      */
-    AddressResponseDto getAddress(Long id);
+    AddressResponseDto getAddress(Long id,String correlationId);
 }

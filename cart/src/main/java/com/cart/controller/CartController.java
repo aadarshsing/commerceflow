@@ -49,7 +49,16 @@ public class CartController {
             @NotNull(message = "CartId cannot be null")
             @PathVariable Long customerId
     ){
+        ResponseDto responseDto = cartService.deleteCartItems(customerId);
+        return ResponseEntity.ok(responseDto);
+    }
+    @DeleteMapping("carts/{customerId}/delete")
+    public ResponseEntity<ResponseDto> deleteCart(
+            @NotNull(message = "CartId cannot be null")
+            @PathVariable Long customerId){
+
         ResponseDto responseDto = cartService.deleteCart(customerId);
         return ResponseEntity.ok(responseDto);
+
     }
 }

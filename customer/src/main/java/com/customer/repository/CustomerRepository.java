@@ -12,9 +12,12 @@ import java.util.Optional;
 public interface CustomerRepository extends JpaRepository<Customer,Long> {
 
     @Transactional
-    public void deleteByEmail(String email);
+    void deleteByEmail(String email);
 
-    public Optional<Customer> findByEmail(String email);
+    Optional<Customer> findByEmail(String email);
+
+    Optional<Customer> findByIdempotencyKey(String idempotencyKey);
+
 
 
 }

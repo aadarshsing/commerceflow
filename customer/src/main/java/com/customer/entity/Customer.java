@@ -35,6 +35,8 @@ public class Customer extends BaseEntity {
             cascade = CascadeType.ALL,
             orphanRemoval = true)
     private List<Address> addresses;
+    @Column(nullable = false,unique = true)
+    private String idempotencyKey;
 
 
 }

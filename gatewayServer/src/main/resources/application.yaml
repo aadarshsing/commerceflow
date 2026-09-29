@@ -11,9 +11,9 @@ spring:
             locator:
               enabled: false
               lowerCaseServiceId: true
-#          httpclient:
-#            connect-timeout: 2000
-#            response-timeout: 3s
+          httpclient:
+            connect-timeout: 100
+            response-timeout: 2s
 eureka:
   instance:
     preferIpAddress: true
@@ -37,6 +37,7 @@ logging:
     com:
       gatewayServer: DEBUG
 
+
 resilience4j:
   circuitbreaker:
     configs:
@@ -58,7 +59,7 @@ resilience4j:
 
     instances:
       customerCircuitBreaker:
-        timeoutDuration: 3s
+        timeoutDuration: 2s
         cancelRunningFuture: true
 
       orderCircuitBreaker:
@@ -66,11 +67,11 @@ resilience4j:
         cancelRunningFuture: true
 
       catalogCircuitBreaker:
-        timeoutDuration: 3s
+        timeoutDuration: 5s
         cancelRunningFuture: true
 
       inventoryCircuitBreaker:
-        timeoutDuration: 3s
+        timeoutDuration: 5s
         cancelRunningFuture: true
 
       cartCircuitBreaker:
@@ -78,9 +79,8 @@ resilience4j:
         cancelRunningFuture: true
 
       shipmentCircuitBreaker:
-        timeoutDuration: 3s
+        timeoutDuration: 5s
         cancelRunningFuture: true
-
 
 
 
