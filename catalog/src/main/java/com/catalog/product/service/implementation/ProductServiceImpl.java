@@ -41,18 +41,49 @@ public class ProductServiceImpl implements IproductService {
     private final InventoryFeignClient inventoryFeignClient;
 
     @Override
-    public ProductResponseDto createProduct(CreateProductRequestDto productRequestDto) {
+    public ProductResponseDto createProduct(CreateProductRequestDto productRequestDto, String idempotencyKey, String correlationId) {
+        logger.info(
+                "Inside Product Service: Creating product, sellerId={}, sku={}, correlationId={}",
+                productRequestDto.sellerId(),
+                productRequestDto.sku(),
+                correlationId
+        );
 
+        Optional<Product> productForIdempotencyKey = productRepository.findByIdempotencyKey(idempotencyKey);
+        if(productForIdempotencyKey.isPresent()){
+            logger.info(
+                    "Inside Product Service: Idempotent product request detected, productId={}, correlationId={}",
+                    productForIdempotencyKey.get().getId(),
+                    correlationId
+            );
+            return ProductMapper.productEntityTOResponseDto(productForIdempotencyKey.get());
+        }
         Optional<Seller> seller = sellerRepository.findById(productRequestDto.sellerId());
         if(seller.isEmpty()){
+            logger.warn(
+                    "Inside Product Service: Seller not found, sellerId={}, correlationId={}",
+                    productRequestDto.sellerId(),
+                    correlationId
+            );
             throw new ResourceNotFoundException("Seller","SellerId" ,productRequestDto.sellerId().toString());
         }
         Optional<Category> category = categoryRepository.findById(productRequestDto.categoryId());
         if(category.isEmpty()){
+            logger.warn(
+                    "Inside Product Service: Category not found, categoryId={}, correlationId={}",
+                    productRequestDto.categoryId(),
+                    correlationId
+            );
             throw new ResourceNotFoundException("Category","categoryId" ,productRequestDto.categoryId().toString());
         }
 
         if(productRepository.existsBySellerIdAndSku(productRequestDto.sellerId(),productRequestDto.sku())){
+            logger.warn(
+                    "Inside Product Service: Product SKU already exists, sellerId={}, sku={}, correlationId={}",
+                    productRequestDto.sellerId(),
+                    productRequestDto.sku(),
+                    correlationId
+            );
             throw new DuplicateResourceException(
                     "SKU '" + productRequestDto.sku() +
                             "' already exists for seller with id: " +
@@ -63,20 +94,38 @@ public class ProductServiceImpl implements IproductService {
         try {
             product.setCategory(category.get());
             product.setSeller(seller.get());
+            product.setIdempotencyKey(idempotencyKey);
             productRepository.save(product);
+
+            logger.info(
+                    "Inside Product Service: Product created, productId={}, correlationId={}",
+                    product.getId(),
+                    correlationId
+            );
+
 
             inventoryFeignClient.createInventory(
                     new CreateInventoryDto(
-                        product.getId(),
-                        productRequestDto.availableQuantity(),
-                        productRequestDto.lowStockThreshold()
+                            product.getId(),
+                            productRequestDto.availableQuantity(),
+                            productRequestDto.lowStockThreshold()
                     )
             );
+            logger.info(
+                    "Inside Product Service: Inventory created successfully, productId={}, correlationId={}",
+                    product.getId(),
+                    correlationId
+            );
         } catch (Exception e) {
-            if(product != null){
-                return ProductMapper.productEntityTOResponseDto(product);
-            }
-            throw new RuntimeException("Product is not created and Inventory also  for given " +  productRequestDto);
+            logger.error(
+                    "Inside Product Service: Product/Inventory creation failed, productId={}, correlationId={}, message={}",
+                    product.getId(),
+                    correlationId,
+                    e.getMessage(),
+                    e
+            );
+            productRepository.deleteById(product.getId());
+            throw new RuntimeException("Product creation failed: " + e.getMessage());
 
         }
         return ProductMapper.productEntityTOResponseDto(product);
@@ -84,44 +133,175 @@ public class ProductServiceImpl implements IproductService {
     }
 
     @Override
-    public void createProductInBulk(List<CreateProductRequestDto> createProductRequestDtoList) {
-        for(CreateProductRequestDto createProductRequestDto : createProductRequestDtoList){
-            createProduct(createProductRequestDto);
+    public void createProductInBulk(
+            List<CreateProductRequestDto> createProductRequestDtoList,
+            String idempotencyKey,
+            String correlationId) {
+
+        logger.info(
+                "Inside Product Service: Starting bulk product creation, productCount={}, correlationId={}",
+                createProductRequestDtoList.size(),
+                correlationId
+        );
+
+        for (int i = 0; i < createProductRequestDtoList.size(); i++) {
+
+            CreateProductRequestDto request =
+                    createProductRequestDtoList.get(i);
+
+            try {
+                String productIdempotencyKey =
+                        idempotencyKey + "_product_" + i;
+
+                createProduct(
+                        request,
+                        productIdempotencyKey,
+                        correlationId
+                );
+
+                logger.info(
+                        "Inside Product Service: Bulk product created successfully, index={}, sellerId={}, sku={}, correlationId={}",
+                        i,
+                        request.sellerId(),
+                        request.sku(),
+                        correlationId
+                );
+
+            } catch (Exception e) {
+
+                logger.warn(
+                        "Inside Product Service: Bulk product creation failed, index={}, sellerId={}, sku={}, correlationId={}, message={}",
+                        i,
+                        request.sellerId(),
+                        request.sku(),
+                        correlationId,
+                        e.getMessage()
+                );
+            }
         }
+
+        logger.info(
+                "Inside Product Service: Bulk product creation completed, productCount={}, correlationId={}",
+                createProductRequestDtoList.size(),
+                correlationId
+        );
     }
 
     @Override
-    public ProductResponseDto updateProduct(UpdateProductRequestDto productRequestDto, Long id) {
+    public ProductResponseDto updateProduct(
+            UpdateProductRequestDto productRequestDto,
+            Long id,
+            String correlationId) {
+
+        logger.info(
+                "Inside Product Service: Updating product, productId={}, correlationId={}",
+                id,
+                correlationId
+        );
+
         Optional<Product> product = productRepository.findById(id);
-        if(product.isEmpty()){
-            throw new ResourceNotFoundException("Product","Id",id.toString());
+
+        if (product.isEmpty()) {
+            logger.warn(
+                    "Inside Product Service: Product not found, productId={}, correlationId={}",
+                    id,
+                    correlationId
+            );
+
+            throw new ResourceNotFoundException(
+                    "Product",
+                    "Id",
+                    id.toString()
+            );
         }
-        Optional<Category> category = categoryRepository.findById(productRequestDto.categoryId());
-        if(category.isEmpty()){
-            throw new ResourceNotFoundException("Category","categoryId" ,productRequestDto.categoryId().toString());
+
+        Optional<Category> category =
+                categoryRepository.findById(productRequestDto.categoryId());
+
+        if (category.isEmpty()) {
+            logger.warn(
+                    "Inside Product Service: Category not found while updating product, categoryId={}, productId={}, correlationId={}",
+                    productRequestDto.categoryId(),
+                    id,
+                    correlationId
+            );
+
+            throw new ResourceNotFoundException(
+                    "Category",
+                    "categoryId",
+                    productRequestDto.categoryId().toString()
+            );
         }
-        ProductMapper.productUpdateDtoToEntity(productRequestDto,product.get());
+
+        ProductMapper.productUpdateDtoToEntity(
+                productRequestDto,
+                product.get()
+        );
+
         product.get().setCategory(category.get());
+
         productRepository.save(product.get());
 
-        return  ProductMapper.productEntityTOResponseDto(product.get());
+        logger.info(
+                "Inside Product Service: Product updated successfully, productId={}, correlationId={}",
+                id,
+                correlationId
+        );
 
-    }
-
-    @Override
-    public ProductResponseDto getProductById(Long id) {
-        Optional<Product> product = productRepository.findById(id);
-        if(product.isEmpty()){
-            throw new ResourceNotFoundException("Product","Id",id.toString());
-        }
-        else if(!product.get().getStatus().equals(ProductStatus.ACTIVE)){
-            throw new ResourceNotActiveException("product","productId",id.toString());
-        }
         return ProductMapper.productEntityTOResponseDto(product.get());
     }
 
     @Override
-    public Slice<ProductResponseDto> listProduduct(ProductStatus status, Long sellerId, Long categoryId, String name, BigDecimal minPrice, BigDecimal maxPrice, Long cursor, int limit) {
+    public ProductResponseDto getProductById(Long id, String correlationId) {
+
+        logger.info(
+                "Inside Product Service: Fetching product, productId={}, correlationId={}",
+                id,
+                correlationId
+        );
+
+        Optional<Product> product = productRepository.findById(id);
+
+        if (product.isEmpty()) {
+            logger.warn(
+                    "Inside Product Service: Product not found, productId={}, correlationId={}",
+                    id,
+                    correlationId
+            );
+
+            throw new ResourceNotFoundException(
+                    "Product",
+                    "Id",
+                    id.toString()
+            );
+        }
+
+        if (!ProductStatus.ACTIVE.equals(product.get().getStatus())) {
+            logger.warn(
+                    "Inside Product Service: Product is not active, productId={}, status={}, correlationId={}",
+                    id,
+                    product.get().getStatus(),
+                    correlationId
+            );
+
+            throw new ResourceNotActiveException(
+                    "product",
+                    "productId",
+                    id.toString()
+            );
+        }
+
+        logger.info(
+                "Inside Product Service: Product fetched successfully, productId={}, correlationId={}",
+                id,
+                correlationId
+        );
+
+        return ProductMapper.productEntityTOResponseDto(product.get());
+    }
+
+    @Override
+    public Slice<ProductResponseDto> listProduduct(String correlationId, ProductStatus status, Long sellerId, Long categoryId, String name, BigDecimal minPrice, BigDecimal maxPrice, Long cursor, int limit) {
 
         Specification<Product> specification =  Specification
                 .where(ProductSpecification.hasStatus(status))
@@ -132,6 +312,16 @@ public class ProductServiceImpl implements IproductService {
                 .and(ProductSpecification.priceLessThanOrEqual(maxPrice))
                 .and(ProductSpecification.hasCursor(cursor));
 
+        logger.info(
+                "Inside Product Service: Fetching products, status={}, sellerId={}, categoryId={}, cursor={}, limit={}, correlationId={}",
+                status,
+                sellerId,
+                categoryId,
+                cursor,
+                limit,
+                correlationId
+        );
+
         Pageable pageable = PageRequest.of(
                 0,limit,
                 Sort.by(Sort.Direction.ASC,"id")
@@ -141,17 +331,40 @@ public class ProductServiceImpl implements IproductService {
                 specification,
                 pageable
         );
+        logger.info(
+                "Inside Product Service: Products fetched successfully, resultCount={}, hasNext={}, correlationId={}",
+                listProducts.getNumberOfElements(),
+                listProducts.hasNext(),
+                correlationId
+        );
         return  listProducts.map(ProductMapper::productEntityTOResponseDto);
 
     }
 
     @Override
-    public boolean deleteProduct(Long id) {
+    public boolean deleteProduct(Long id, String correlationId) {
+        logger.info(
+                "Inside Product Service: Deactivating product, productId={}, correlationId={}",
+                id,
+                correlationId
+        );
         Product product = productRepository.findById(id).orElseThrow(
-                () ->    new ResourceNotFoundException("product","id",id.toString())
+                () -> {
+                    logger.warn(
+                            "Inside Product Service: Product not found, productId={}, correlationId={}",
+                            id,
+                            correlationId
+                    );
+                    return new ResourceNotFoundException("product", "id", id.toString());
+                }
         );
         product.setStatus(ProductStatus.INACTIVE);
         productRepository.save(product);
+        logger.info(
+                "Inside Product Service: Product deactivated successfully, productId={}, correlationId={}",
+                id,
+                correlationId
+        );
         return true;
     }
 

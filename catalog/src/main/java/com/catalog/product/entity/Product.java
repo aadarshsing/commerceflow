@@ -60,4 +60,7 @@ public class Product extends BaseEntity {
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private ProductStatus status;
+
+    @Column(unique = true,nullable = false)
+    private String idempotencyKey;
 }

@@ -67,7 +67,7 @@ resilience4j:
         cancelRunningFuture: true
 
       catalogCircuitBreaker:
-        timeoutDuration: 5s
+        timeoutDuration: 2s
         cancelRunningFuture: true
 
       inventoryCircuitBreaker:

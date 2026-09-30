@@ -30,7 +30,12 @@ spring:
         config:
           inventory:
             connectTimeout: 500
-            readTimeout: 1000
+            readTimeout: 1500
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
 
 eureka:
   instance:
@@ -57,6 +62,6 @@ resilience4j:
   timelimiter:
     configs:
       default:
-        timeoutDuration: 1s
+        timeoutDuration: 2s
         cancelRunningFuture: true
 

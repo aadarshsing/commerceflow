@@ -42,7 +42,11 @@ public class CustomRouteLocator {
                 .route(predicateSpec -> predicateSpec.path("/commerceflow/inventory/**")
                         .filters(gatewayFilterSpec -> gatewayFilterSpec.rewritePath("/commerceflow/inventory/(?<segment>.*)", "/${segment}")
                                 .circuitBreaker(config -> config.setName("inventoryCircuitBreaker")
-                                        .setFallbackUri("forward:/contact-support")))
+                                        .setFallbackUri("forward:/contact-support"))
+                                .retry(retryConfig -> retryConfig
+                                        .setRetries(3)
+                                        .setMethods(HttpMethod.GET,HttpMethod.POST)
+                                        .setBackoff(Duration.ofMillis(100),Duration.ofMillis(1000),3,true)))
                         .uri("lb://INVENTORY"))
                 .route(predicateSpec -> predicateSpec.path("/commerceflow/shipment/**")
                         .filters(gatewayFilterSpec -> gatewayFilterSpec.rewritePath("/commerceflow/shipment/(?<segment>.*)", "/${segment}")

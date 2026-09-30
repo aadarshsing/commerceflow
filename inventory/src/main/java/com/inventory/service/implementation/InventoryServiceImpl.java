@@ -41,13 +41,13 @@ public class InventoryServiceImpl implements IInventoryService {
             throw new DuplicateResourceException("Inventory already exist for given product \n" +
                     "you can add stock");
         }
-        ProductResponseDto productResponseDto = productFeignClient.getProductById(inventoryDto.productId()).getBody();
-        if(productResponseDto == null){
-            throw  new ResourceNotFoundException("Product","ProductId",inventoryDto.productId().toString());
-        }
-        if(productResponseDto.status().equals(ProductStatus.INACTIVE)){
-            throw new ResourceNotActiveException("Product","productId",inventoryDto.productId().toString());
-        }
+//        ProductResponseDto productResponseDto = productFeignClient.getProductById(inventoryDto.productId()).getBody();
+//        if(productResponseDto == null){
+//            throw  new ResourceNotFoundException("Product","ProductId",inventoryDto.productId().toString());
+//        }
+//        if(productResponseDto.status().equals(ProductStatus.INACTIVE)){
+//            throw new ResourceNotActiveException("Product","productId",inventoryDto.productId().toString());
+//        }
         Inventory inventory1 = InventoryMapper.createDtoToInventoryMapper(new Inventory(),inventoryDto);
         inventoryRepository.save(inventory1);
     }

@@ -27,17 +27,23 @@ public class ProductController {
     IproductService iproductService;
 
     @PostMapping("/product")
-    ResponseEntity<ProductResponseDto> createProduct(@Valid @RequestBody CreateProductRequestDto productRequestDto){
+    ResponseEntity<ProductResponseDto> createProduct(
+            @Valid @RequestBody CreateProductRequestDto productRequestDto,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @RequestHeader("commerceflow-correlation-id") String correlationId){
 
-        ProductResponseDto productResponseDto =iproductService.createProduct(productRequestDto);
+        ProductResponseDto productResponseDto =iproductService.createProduct(productRequestDto,idempotencyKey,correlationId);
         return ResponseEntity.ok(
                 productResponseDto
         );
 
     }
     @PostMapping("/product/bulk")
-    ResponseEntity<ResponseDto> createBulkProduct(@Valid @RequestBody List<CreateProductRequestDto> createProductRequestDtoList){
-        iproductService.createProductInBulk(createProductRequestDtoList);
+    ResponseEntity<ResponseDto> createBulkProduct(
+            @Valid @RequestBody List<CreateProductRequestDto> createProductRequestDtoList,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @RequestHeader("commerceflow-correlation-id") String correlationId){
+        iproductService.createProductInBulk(createProductRequestDtoList,idempotencyKey,correlationId);
         return ResponseEntity.ok(
                 new ResponseDto(
                         HttpStatus.OK.toString(),
@@ -47,11 +53,13 @@ public class ProductController {
     }
 
     @PutMapping("/product/{id}")
-    ResponseEntity<ProductResponseDto> updateProduct(@Valid @RequestBody UpdateProductRequestDto productRequestDto,
-                                                     @NotNull(message = "id cannot be null")
-                                                     @PathVariable  Long id){
+    ResponseEntity<ProductResponseDto> updateProduct(
+            @Valid @RequestBody UpdateProductRequestDto productRequestDto,
+            @NotNull(message = "id cannot be null")
+            @PathVariable  Long id,
+            @RequestHeader("commerceflow-correlation-id") String correlationId){
 
-        ProductResponseDto productResponseDto = iproductService.updateProduct(productRequestDto,id);
+        ProductResponseDto productResponseDto = iproductService.updateProduct(productRequestDto,id, correlationId);
         return  new ResponseEntity<>(
                 productResponseDto,
                 HttpStatus.OK
@@ -60,8 +68,8 @@ public class ProductController {
 
     @GetMapping("/product")
     ResponseEntity<ProductResponseDto> getProductById(@NotNull(message = "id cannot be null")
-                                                         @RequestParam Long id){
-        ProductResponseDto productResponseDto = iproductService.getProductById(id);
+                                                         @RequestParam Long id,@RequestHeader("commerceflow-correlation-id") String correlationId){
+        ProductResponseDto productResponseDto = iproductService.getProductById(id,correlationId);
         return new ResponseEntity<>(
                 productResponseDto,
                 HttpStatus.OK
@@ -70,6 +78,7 @@ public class ProductController {
 
     @GetMapping("/products")
     ResponseEntity<Slice<ProductResponseDto>> listProduct(
+            @RequestHeader("commerceflow-correlation-id") String correlationId,
             @RequestParam(required = false) ProductStatus status,
             @RequestParam(required = false) Long sellerId,
             @RequestParam(required = false) Long categoryId,
@@ -79,15 +88,14 @@ public class ProductController {
             @RequestParam(required = false) Long cursor,
             @RequestParam(defaultValue = "10") int limit){
 
-        Slice<ProductResponseDto> productResponseDtoPage = iproductService.listProduduct(
+        Slice<ProductResponseDto> productResponseDtoPage = iproductService.listProduduct(correlationId,
                 status,
                 sellerId,
                 categoryId,
                 name,
                 minPrice,
                 maxPrice,
-                cursor,
-                limit);
+                cursor, limit);
 
         return  ResponseEntity.ok(productResponseDtoPage);
     }
