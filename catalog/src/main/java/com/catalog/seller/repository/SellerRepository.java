@@ -14,4 +14,6 @@ public interface SellerRepository extends JpaRepository<Seller,Long> {
 
     @Transactional
     void deleteByEmail(String email);
+
+    Optional<Seller> findByIdempotencyKey(String idempotencyKey);
 }

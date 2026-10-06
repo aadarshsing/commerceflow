@@ -13,7 +13,7 @@ spring:
               lowerCaseServiceId: true
           httpclient:
             connect-timeout: 100
-            response-timeout: 2s
+            response-timeout: 1s
 eureka:
   instance:
     preferIpAddress: true

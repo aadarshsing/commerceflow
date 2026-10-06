@@ -32,4 +32,7 @@ public class Seller extends BaseEntity {
 
     @OneToMany(mappedBy = "seller")
     private List<Product> products;
+
+    @Column(nullable = false,unique = true)
+    private String idempotencyKey;
 }

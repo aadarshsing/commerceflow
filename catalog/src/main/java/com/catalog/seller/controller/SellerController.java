@@ -23,24 +23,30 @@ public class SellerController {
     IsellerService sellerService;
 
     @GetMapping("/seller")
-    ResponseEntity<SellerResponseDto> getSellerByEmail(@Email(message = "Invalid email format")@RequestParam String email){
-        SellerResponseDto sellerResponseDto = sellerService.fetchSeller(email);
+    ResponseEntity<SellerResponseDto> getSellerByEmail(
+            @Email(message = "Invalid email format")@RequestParam String email,
+            @RequestHeader("commerceflow-correlation-id") String correlationId){
+        SellerResponseDto sellerResponseDto = sellerService.fetchSeller(email,correlationId);
         return ResponseEntity.ok(sellerResponseDto);
     }
 
     @PostMapping("/seller")
-    ResponseEntity<ResponseDto> createSeller(@Valid @RequestBody CreateSellerRequestDto sellerRequestDto){
-        sellerService.createSeller(sellerRequestDto);
+    ResponseEntity<SellerResponseDto> createSeller(@Valid @RequestBody CreateSellerRequestDto sellerRequestDto,@RequestHeader("Idempotency-Key") String idempotencyKey,
+                                             @RequestHeader("commerceflow-correlation-id") String correlationId){
+        SellerResponseDto sellerResponseDto = sellerService.createSeller(sellerRequestDto,idempotencyKey,correlationId);
         return new ResponseEntity<>(
-                new ResponseDto(HttpStatus.CREATED.toString(),"Seller created Successfully"),
+                sellerResponseDto,
                 HttpStatus.CREATED
         );
 
     }
 
     @PutMapping("/seller")
-    ResponseEntity<SellerResponseDto> updateSeller(@Valid @RequestBody CreateSellerRequestDto sellerRequestDto, @Email(message = "Invalid email format") String email){
-        SellerResponseDto sellerResponseDto = sellerService.updateSeller(sellerRequestDto,email);
+    ResponseEntity<SellerResponseDto> updateSeller(
+            @Valid @RequestBody CreateSellerRequestDto sellerRequestDto,
+            @Email(message = "Invalid email format") String email,
+            @RequestHeader("commerceflow-correlation-id") String correlationId){
+        SellerResponseDto sellerResponseDto = sellerService.updateSeller(sellerRequestDto,email,correlationId);
         return new ResponseEntity<>(
                 sellerResponseDto,
                 HttpStatus.OK
@@ -48,8 +54,10 @@ public class SellerController {
     }
 
     @DeleteMapping("/seller")
-    ResponseEntity<ResponseDto> deleteSeller(@Email(message = "Invalid email format") @RequestParam String email){
-        boolean isDeleted = sellerService.deleteSeller(email);
+    ResponseEntity<ResponseDto> deleteSeller(
+            @Email(message = "Invalid email format") @RequestParam String email,
+            @RequestHeader("commerceflow-correlation-id") String correlationId){
+        boolean isDeleted = sellerService.deleteSeller(email,correlationId);
         if(isDeleted){
             return new ResponseEntity<>(
                     new ResponseDto(
@@ -62,7 +70,7 @@ public class SellerController {
         return new ResponseEntity<>(
                 new ResponseDto(
                         HttpStatus.INTERNAL_SERVER_ERROR.toString(),
-                        "seller doesnot deleted "
+                        "seller does not deleted "
                 ),
                 HttpStatus.OK
         );
